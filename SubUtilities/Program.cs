@@ -12,9 +12,13 @@ rootCmd.Add(subtitlesCmd);
 // offsetCmd.Add(offsetUpdateCmd);
 
 
-var offsetArg = new Option<TimeSpan>(
+var offsetArg = new Option<TimeSpan?>(
     name: "--offset",
-    parseArgument: ctx => ParseOffset(ctx.Tokens[0].Value)
+    parseArgument: ctx =>
+    {
+        if (String.IsNullOrEmpty(ctx.Tokens[0].Value)) return null;
+        return ParseOffset(ctx.Tokens[0].Value);
+    }
 );
 
 var fileArg = new Option<FileInfo>(name: "--file");
@@ -26,12 +30,16 @@ subtitlesCmd.Add(fileArg);
 subtitlesCmd.SetHandler(async ctx =>
 {
     var offset = ctx.ParseResult.GetValueForOption(offsetArg);
+    var pipeline = new TransformationPipeline();
+    
+    if(offset.HasValue) pipeline.AddTransformation(new OffsetTransformation(offset.Value));
+    
     var file = ctx.ParseResult.GetValueForOption(fileArg);
 
     await using var srtFileStream = file.Open(FileMode.Open, FileAccess.ReadWrite);
     var srt = await SrtFile.Parse(srtFileStream);
 
-    foreach (var segment in srt.Segments) segment.AdjustTimeRange(offset);
+    await pipeline.Run(srt);
 
     srtFileStream.Seek(0, SeekOrigin.Begin);
     await srt.WriteToStream(srtFileStream);
@@ -67,7 +75,7 @@ static TimeSpan ParseOffset(string offset)
 }
 
 
-class SrtFile
+public class SrtFile
 {
     
     public SrtSegment[] Segments { get; }
@@ -161,7 +169,7 @@ class SrtFile
     
 }
 
-class SrtSegment
+public class SrtSegment
 {
     private TimeRange _timeRange;
     
@@ -181,11 +189,7 @@ class SrtSegment
         // should we include a reference to our containing file to also update numbering?
         // Maybe include autonumbering -> sort based on range?
 
-        _timeRange = new TimeRange
-        {
-            From = TimeRange.From + offset,
-            To = TimeRange.To + offset,
-        };
+        _timeRange += offset;
     }
 }
 
@@ -193,6 +197,70 @@ public struct TimeRange
 {
     public required TimeSpan From { get; init; }
     public required TimeSpan To { get; init; }
+
+    public static TimeRange operator -(TimeRange range, TimeSpan offset) => new TimeRange
+    {
+        From = range.From - offset,
+        To = range.To - offset
+    };
+    
+    public static TimeRange operator +(TimeRange range, TimeSpan offset) => new TimeRange
+    {
+        From = range.From - offset,
+        To = range.To - offset
+    };
+}
+
+public class TransformationPipeline
+{
+    private readonly List<ITransformation> _transformations;
+    
+    public TransformationPipeline()
+    {
+        _transformations = new List<ITransformation>();
+    }
+
+    public void AddTransformation(ITransformation transformation) => _transformations.Add(transformation);
+
+    public async Task Run(SrtFile srt)
+    {
+        var context = new TransformationContext { Srt = srt };
+        
+        foreach (var transformation in _transformations)
+        {
+            await transformation.Apply(context);
+        }
+    }
+}
+
+public class OffsetTransformation : ITransformation
+{
+    private readonly TimeSpan _offset;
+    
+    public OffsetTransformation(TimeSpan offset)
+    {
+        _offset = offset;
+    }
+    
+    public Task Apply(TransformationContext context)
+    {
+        foreach (var segment in context.Srt.Segments)
+        {
+            segment.AdjustTimeRange(_offset);
+        }
+
+        return Task.CompletedTask;
+    }
+}
+
+public interface ITransformation
+{
+    Task Apply(TransformationContext context);
+}
+
+public class TransformationContext
+{
+    public SrtFile Srt { get; set; }
 }
 
 /*

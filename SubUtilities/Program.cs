@@ -2,8 +2,6 @@
 using System.Globalization;
 using System.Text;
 
-Console.WriteLine("YEP");
-
 
 // sub-utils offset update -5s
 var rootCmd = new RootCommand();
@@ -110,14 +108,17 @@ class SrtFile
     
     public static async Task<SrtFile> Parse(Stream source, Encoding encoding)
     {
+        // faster than invoking readline constantly..
+        var sourceString = await new StreamReader(source, encoding, leaveOpen: true).ReadToEndAsync(); 
+        
         // we do not own the underlying stream
-        using var reader = new StreamReader(source, encoding, leaveOpen: true);
+        using var reader = new StringReader(sourceString);
         var textBuffer = new StringBuilder();
         
         // small optimization: read number of final segment -> pre-determine total segments
         var segments = new List<SrtSegment>();
 
-        while (!reader.EndOfStream)
+        while (reader.Peek() != -1)
         {
             segments.Add(await ParseNextSegment());
         }

@@ -1,21 +1,24 @@
 ﻿public class TransformationPipeline
 {
-    private readonly List<ITransformation> _transformations;
+    private readonly List<IAction> _transformations;
     
     public TransformationPipeline()
     {
-        _transformations = new List<ITransformation>();
+        _transformations = new List<IAction>();
     }
 
-    public void AddTransformation(ITransformation transformation) => _transformations.Add(transformation);
+    public void AddTransformation(IAction action) => _transformations.Add(action);
 
-    public async Task Run(SrtFile srt)
+    public async Task<int> Run()
     {
-        var context = new TransformationContext { Srt = srt };
+        var context = new ActionContext();
         
         foreach (var transformation in _transformations)
         {
             await transformation.Apply(context);
+            if (context.HasFailed) return context.ExitCode;
         }
+
+        return context.ExitCode;
     }
 }

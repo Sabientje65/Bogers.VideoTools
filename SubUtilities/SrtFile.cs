@@ -4,6 +4,8 @@ using System.Text;
 public class SrtFile
 {
     
+    public string Name { get; set; } // TODO: Set via ctor?
+    
     public SrtSegment[] Segments { get; }
 
     private SrtFile(SrtSegment[] segments)

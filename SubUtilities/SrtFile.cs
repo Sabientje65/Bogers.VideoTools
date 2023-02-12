@@ -1,6 +1,8 @@
 ﻿using System.Globalization;
 using System.Text;
 
+namespace SubUtilities;
+
 public class SrtFile
 {
     

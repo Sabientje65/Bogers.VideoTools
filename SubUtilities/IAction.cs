@@ -1,4 +1,6 @@
-﻿public interface IAction
+﻿namespace SubUtilities;
+
+public interface IAction
 {
     Task Apply(ActionContext context);
 }

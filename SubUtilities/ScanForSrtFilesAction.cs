@@ -1,5 +1,7 @@
 ﻿using Microsoft.VisualBasic;
 
+namespace SubUtilities;
+
 public class ScanForSrtFilesAction : IAction
 {
     private readonly string _location;

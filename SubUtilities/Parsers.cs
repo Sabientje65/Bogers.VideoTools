@@ -1,4 +1,6 @@
-﻿public class Parsers
+﻿namespace SubUtilities;
+
+public class Parsers
 {
     
     public static TimeSpan ParseOffset(string offset)

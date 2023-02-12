@@ -1,4 +1,6 @@
-﻿public class WriteToFileAction : IAction
+﻿namespace SubUtilities;
+
+public class WriteToFileAction : IAction
 {
     private readonly string _destination;
     

@@ -1,4 +1,6 @@
-﻿public class ActionContext
+﻿namespace SubUtilities;
+
+public class ActionContext
 {
     public List<SrtFile> SrtFiles { get; } = new List<SrtFile>();
 

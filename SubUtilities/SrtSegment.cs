@@ -1,4 +1,6 @@
-﻿public class SrtSegment
+﻿namespace SubUtilities;
+
+public class SrtSegment
 {
     private TimeRange _timeRange;
     

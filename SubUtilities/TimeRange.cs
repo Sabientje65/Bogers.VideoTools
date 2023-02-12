@@ -1,4 +1,6 @@
-﻿public struct TimeRange
+﻿namespace SubUtilities;
+
+public struct TimeRange
 {
     public required TimeSpan From { get; init; }
     public required TimeSpan To { get; init; }

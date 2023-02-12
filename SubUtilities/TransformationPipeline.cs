@@ -1,4 +1,6 @@
-﻿public class TransformationPipeline
+﻿namespace SubUtilities;
+
+public class TransformationPipeline
 {
     private readonly List<IAction> _transformations;
     

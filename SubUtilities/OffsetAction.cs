@@ -1,4 +1,6 @@
-﻿public class OffsetAction : IAction
+﻿namespace SubUtilities;
+
+public class OffsetAction : IAction
 {
     private readonly TimeSpan _offset;
     

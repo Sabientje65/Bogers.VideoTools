@@ -27,7 +27,10 @@ public class MatroskaVideo
             if (!VerifyMasterId()) throw new Exception("Expected master elementId to be: 0x1A45DFA3");
             
             // assume A3 -> 1
-            var masterSize = ReadVIntSize();
+            var masterSize = ReadVInt();
+            // var master = ReadVInt();
+            
+            // var masterValue = ReadBytes((int)masterSize);
             
             
             // var octet = ReadBytes(1)[0];
@@ -58,17 +61,30 @@ public class MatroskaVideo
         // var str2 = str; // allow setting breakpoint
     }
 
-    private static string DumpString(byte[] b) => Encoding.UTF8.GetString(b);
+    private static string DumpString(byte[] b) => String.Join(' ', b.Select( b => DumpString(b).PadLeft(8, '0') ));
 
-    private static string StringifyBits(byte b)
+    private static string DumpString(byte b) => Convert.ToString(b, toBase: 2).PadLeft(8, '0');
+    
+    class BitMask
     {
-        // more efficient solution: https://stackoverflow.com/a/4854257
-        var bitArr = new BitArray(new[] { b });
+        public static bool IsSet(byte b, int pos) => (b & (1 << (pos - 1))) != 0;
+        public static bool IsUnset(byte b, int pos) => (b & (1 << (pos - 1))) == 0;
 
-        return "00000000";
+        public static byte Set(byte b, int pos) => (byte)(b | (1 << (pos - 1)));
+        public static byte Unset(byte b, int pos) => (byte)(b & ~(1 << (pos - 1)));
+
+        public static byte PadLeft(byte b, int bits) => (byte)(b << bits);
     }
 
-    private static long ReadVIntSize()
+    private static int ReadVInt()
+    {
+        var width = ReadVIntValue();
+        var data = ReadBytes((int)width);
+
+        return BitConverter.ToInt32(data);
+    }
+
+    private static int ReadVIntValue()
     {
         // the size of a vint is indicated by the first encountered `1` bit in an array of octets
         // for starting off, support only 1 octet
@@ -80,41 +96,60 @@ public class MatroskaVideo
         // 0000 01XX -> 6
         // 0000 001X -> 7
         // 0000 0001 -> 8
+        
+        //A3 42 86 81 <-- hoe plukken we hier een version uit?
 
-        var vintWidthBytes = ReadBytes(1);
-        var vintWidthArr = new BitArray(vintWidthBytes);
+        var widthOctetCount = ReadBytes(1)[0];
 
         // https://www.rfc-editor.org/rfc/rfc8794#name-vint_width
         // step 1: determine width by finding our width marker
         var vintWidth = 0;
-        if (vintWidthArr.Get(7)) vintWidth = 1;
-        else if (vintWidthArr.Get(6)) vintWidth = 2;
-        else if (vintWidthArr.Get(5)) vintWidth = 3;
-        else if (vintWidthArr.Get(4)) vintWidth = 4;
-        else if (vintWidthArr.Get(3)) vintWidth = 3;
-        else if (vintWidthArr.Get(2)) vintWidth = 2;
-        else if (vintWidthArr.Get(1)) vintWidth = 1;
+        if (BitMask.IsSet(widthOctetCount, 8)) vintWidth = 1;
+        else if (BitMask.IsSet(widthOctetCount, 7)) vintWidth = 2;
+        else if (BitMask.IsSet(widthOctetCount, 6)) vintWidth = 3;
+        else if (BitMask.IsSet(widthOctetCount, 5)) vintWidth = 4;
+        else if (BitMask.IsSet(widthOctetCount, 4)) vintWidth = 5;
+        else if (BitMask.IsSet(widthOctetCount, 3)) vintWidth = 6;
+        else if (BitMask.IsSet(widthOctetCount, 2)) vintWidth = 7;
+        else if (BitMask.IsSet(widthOctetCount, 1)) vintWidth = 8;
+
+        // unset marker bit - first octet is part of the octet count
+        widthOctetCount = BitMask.Unset(widthOctetCount, 9 - vintWidth);
+        vintWidth--;
 
         // throw when 0
         
         // include width octet, remove 1
-        var vintValueBytes = vintWidthBytes
-            .Concat(ReadBytes(vintWidth - 1))
-            .Concat(Enumerable.Range( 0, 8 - vintWidth ).Select(x => (byte)0)) // ensure proper length for 64 bit int
-            .ToArray();
-        var vintValueArr = new BitArray(vintValueBytes);
+        var vintValueOctets = new byte[4];
+        var additionalWidthOctets = ReadBytes(vintWidth);
+        
+        // big endian, right to left
+        // for ()
+        
+        // big endian - largest value first
+        vintValueOctets[0] = BitMask.PadLeft(widthOctetCount, vintWidth);
+        var octets = DumpString(vintValueOctets);
+
+        for (var octetIdx = 1; octetIdx < additionalWidthOctets.Length; octetIdx++) vintValueOctets[octetIdx] = additionalWidthOctets[octetIdx];
+        
+        
+        // var vintValueBytes = vintWidthBytes
+        //     .Concat(ReadBytes(vintWidth - 1))
+        //     .Concat(Enumerable.Range( 0, 8 - vintWidth ).Select(x => (byte)0)) // ensure proper length for 64 bit int
+        //     .ToArray();
+        // var vintValueArr = new BitArray(vintWidthOctets);
 
         // value = big endian
         // if (BitConverter.IsLittleEndian) Array.Reverse(octets);
         // for (var idx = 0; idx < vintWidth; idx++) vintValueArr.Set(7 - idx, false);
 
-        var vintValue = new byte[8];
-        vintValueArr.CopyTo(vintValue, 0);
+        // var vintValue = new byte[8];
+        // vintValueArr.CopyTo(vintValue, 0);
         
-        var value = BitConverter.ToInt64(vintValue);
+        var value = BitConverter.ToInt32(vintValueOctets);
         
         // strip the width indicator bytes
-        return value >> vintWidth; 
+        return value; 
 
         // var octetsArr = new BitArray(octets);
 
@@ -129,21 +164,21 @@ public class MatroskaVideo
 
     }
 
-    private static int ReadDataSizeInOctets()
-    {
-        // start with support for size in a single octet
-        var sizeByte = ReadBytes(1);
-        var bitArr = new BitArray(sizeByte);
-
-        if (bitArr.Get(7)) return 7;
-        if (bitArr.Get(6)) return 6;
-        if (bitArr.Get(5)) return 5;
-        if (bitArr.Get(4)) return 4;
-        if (bitArr.Get(3)) return 3;
-        if (bitArr.Get(2)) return 2;
-        if (bitArr.Get(1)) return 1;
-        return 0; // invalid
-    }
+    // private static int ReadDataSizeInOctets()
+    // {
+    //     // start with support for size in a single octet
+    //     var sizeByte = ReadBytes(1);
+    //     var bitArr = new BitArray(sizeByte);
+    //
+    //     if (bitArr.Get(7)) return 7;
+    //     if (bitArr.Get(6)) return 6;
+    //     if (bitArr.Get(5)) return 5;
+    //     if (bitArr.Get(4)) return 4;
+    //     if (bitArr.Get(3)) return 3;
+    //     if (bitArr.Get(2)) return 2;
+    //     if (bitArr.Get(1)) return 1;
+    //     return 0; // invalid
+    // }
 
     private static bool VerifyMasterId()
     {

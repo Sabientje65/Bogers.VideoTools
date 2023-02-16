@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿using System.Numerics;
 using System.Text;
 
 namespace SubUtilities;
@@ -235,36 +235,6 @@ public class MatroskaVideo
             .Select(x => String.Join("", x)));
         public static string DumpString(byte b) => Convert.ToString(b, toBase: 2).PadLeft(8, '0');
     }
-    
-    class BitMask
-    {
-        public static bool IsSet(byte b, int pos) => (b & (1 << pos)) != 0;
-        public static bool IsUnset(byte b, int pos) => (b & (1 << pos)) == 0;
-
-        public static int Set(int b, int pos) => (b | (1 << pos));
-        public static byte Set(byte b, int pos) => (byte)(b | (1 << pos));
-        public static int Unset(int b, int pos) => (b & ~(1 << pos));
-        public static byte Unset(byte b, int pos) => (byte)(b & ~(1 << pos));
-
-        public static int PadLeft(int b, int bits) => (b << bits);
-        public static byte PadLeft(byte b, int bits) => (byte)(b << bits);
-        
-        public static byte SizeOf(int elementId)
-        {
-            if (elementId > (1 << 24)) return 4;
-            if (elementId > (1 << 16)) return 3;
-            if (elementId > (1 << 8)) return 2;
-            return 1;
-        }
-        
-        public static byte SizeOf(uint elementId)
-        {
-            if (elementId > (1 << 24)) return 4;
-            if (elementId > (1 << 16)) return 3;
-            if (elementId > (1 << 8)) return 2;
-            return 1;
-        }
-    }
 
     private static int ReadElementId()
     {
@@ -335,6 +305,7 @@ public class MatroskaVideo
         return value;
     }
     
+    // can we do this with generic math? -> needs to implement the proper operators
     private static int ToInt(byte[] octets)
     {
         int value = 0;
@@ -358,5 +329,54 @@ public class MatroskaVideo
         var bytes = new byte[count];
         _stream.Read(bytes, 0, count);
         return bytes;
+    }
+}
+
+static class BitMask
+{
+    // generic math variants :-) for fun <-- not enough interop between different numeric types sadge
+    
+    // public static bool IsSet<TNumber>(TNumber value, int position)
+    //     where TNumber : IShiftOperators<TNumber, int, TNumber>,
+    //                     IBitwiseOperators<TNumber, int, TNumber>,
+    //                     IComparisonOperators<TNumber, int, bool>
+    //     => (value & (1 << position)) != 0;
+
+    // public static TNumber Set<TNumber>(TNumber value, int position)
+    //     where TNumber : IShiftOperators<TNumber, int, TNumber>,
+    //     IBitwiseOperators<TNumber, int, TNumber>
+    //     => value | (1 << position);
+    //
+    // public static TNumber Unset<TNumber>(TNumber value, int position)
+    //     where TNumber : IShiftOperators<TNumber, int, TNumber>,
+    //     IBitwiseOperators<TNumber, int, TNumber>
+    //     => value | ~(1 << position);
+    
+    public static bool IsSet(byte b, int pos) => (b & (1 << pos)) != 0;
+    public static bool IsUnset(byte b, int pos) => (b & (1 << pos)) == 0;
+
+    public static int Set(int b, int pos) => (b | (1 << pos));
+    public static byte Set(byte b, int pos) => (byte)(b | (1 << pos));
+    public static int Unset(int b, int pos) => (b & ~(1 << pos));
+    public static byte Unset(byte b, int pos) => (byte)(b & ~(1 << pos));
+
+    public static int PadLeft(int b, int bits) => (b << bits);
+    public static byte PadLeft(byte b, int bits) => (byte)(b << bits);
+        
+    
+    public static byte SizeOf(int elementId)
+    {
+        if (elementId > (1 << 24)) return 4;
+        if (elementId > (1 << 16)) return 3;
+        if (elementId > (1 << 8)) return 2;
+        return 1;
+    }
+        
+    public static byte SizeOf(uint elementId)
+    {
+        if (elementId > (1 << 24)) return 4;
+        if (elementId > (1 << 16)) return 3;
+        if (elementId > (1 << 8)) return 2;
+        return 1;
     }
 }

@@ -106,14 +106,6 @@ public class MatroskaVideo
         /// </summary>
         public const int DocTypeExtensionVersion = 0x4284;
 
-        public static byte SizeOf(int elementId)
-        {
-            if (elementId > (1 << 24)) return 4;
-            if (elementId > (1 << 16)) return 3;
-            if (elementId > (1 << 8)) return 2;
-            return 1;
-        }
-
         public static IDictionary<int, string> Lookup = new Dictionary<int, string>
         {
             { EBML, nameof(EBML) },
@@ -136,7 +128,7 @@ public class MatroskaVideo
         try
         {
             // var file = @"E:\src\Bogers.VideoTools\SubUtilities\TestFiles\test5.mkv";
-            var file = @"D:\Users\danny\Downloads\matroska_test_w1_1\test1.mkv"; // start off simple
+            var file = @"D:\Users\danny\Downloads\matroska_test_w1_1\test5.mkv"; // start off simple
             _stream = File.OpenRead(file);
 
             // step 1: reading the header
@@ -146,37 +138,45 @@ public class MatroskaVideo
             // assume A3 -> 1
             var masterSize = ReadVInt();
 
+            // general element layout:
+            // element id
+            // element size
+            // element value
+            
             while (masterSize > 0)
             {
-                var elementId = ReadId(2);
-                masterSize -= 2;
+                var elementId = ReadElementId();
+                masterSize -= BitMask.SizeOf(elementId);
                 
                 var name = HeaderIds.Lookup[elementId];
                 Console.Write("Detected " + name + ": ");
                 
-                if (elementId == HeaderIds.DocType)
+                if (
+                    elementId == HeaderIds.DocType ||
+                    elementId == HeaderIds.DocTypeExtension ||
+                    elementId == HeaderIds.DocTypeExtensionName
+                )
                 {
                     var docType = ReadString();
                     Console.WriteLine(docType);
-                    masterSize -= docType.Length + 1;
+                    masterSize -= docType.Length;
+                    masterSize--; // string length
                 }
 
-                if (elementId == HeaderIds.DocTypeVersion)
+                if (
+                    elementId == HeaderIds.Version ||
+                    elementId == HeaderIds.ReadVersion ||
+                    elementId == HeaderIds.MaxIdLength ||
+                    elementId == HeaderIds.MaxSizeLength ||
+                    elementId == HeaderIds.DocTypeVersion || 
+                    elementId == HeaderIds.DocTypeReadVersion ||
+                    elementId == HeaderIds.DocTypeExtensionVersion
+                )
                 {
-                    var version = ReadVInt();
-                    Console.WriteLine(version);
-                    masterSize -= HeaderIds.SizeOf(version);
-                    
-                    // todo: remove
-                    ReadBytes(1);
-                    masterSize -= 1;
-                }
-
-                if (elementId == HeaderIds.DocTypeReadVersion)
-                {
-                    var version = ReadVInt();
-                    Console.WriteLine(version);
-                    masterSize -= HeaderIds.SizeOf(version);
+                    var value = ReadUInt();
+                    Console.WriteLine(value);
+                    masterSize -= BitMask.SizeOf(value);
+                    masterSize--; // account for width  
                 }
             }
 
@@ -225,37 +225,59 @@ public class MatroskaVideo
         // var str2 = str; // allow setting breakpoint
     }
 
-    private static string DumpString(byte[] b) => String.Join(' ', b.Select( b => DumpString(b) ));
-
-    private static string DumpString(byte b) => Convert.ToString(b, toBase: 2).PadLeft(8, '0');
+    class DebugUtilities
+    {
+        public static string DumpString(byte[] b) => String.Join(' ', b.Select( b => DumpString(b) ));
+        
+        public static string DumpString(int b) => String.Join(' ', Convert.ToString(b, toBase: 2)
+            .PadLeft(32, '0')
+            .Chunk(8)
+            .Select(x => String.Join("", x)));
+        public static string DumpString(byte b) => Convert.ToString(b, toBase: 2).PadLeft(8, '0');
+    }
     
     class BitMask
     {
-        public static bool IsSet(byte b, int pos) => (b & (1 << (pos))) != 0;
-        public static bool IsUnset(byte b, int pos) => (b & (1 << (pos))) == 0;
+        public static bool IsSet(byte b, int pos) => (b & (1 << pos)) != 0;
+        public static bool IsUnset(byte b, int pos) => (b & (1 << pos)) == 0;
 
-        public static byte Set(byte b, int pos) => (byte)(b | (1 << (pos)));
-        public static byte Unset(byte b, int pos) => (byte)(b & ~(1 << (pos)));
+        public static int Set(int b, int pos) => (b | (1 << pos));
+        public static byte Set(byte b, int pos) => (byte)(b | (1 << pos));
+        public static int Unset(int b, int pos) => (b & ~(1 << pos));
+        public static byte Unset(byte b, int pos) => (byte)(b & ~(1 << pos));
 
+        public static int PadLeft(int b, int bits) => (b << bits);
         public static byte PadLeft(byte b, int bits) => (byte)(b << bits);
+        
+        public static byte SizeOf(int elementId)
+        {
+            if (elementId > (1 << 24)) return 4;
+            if (elementId > (1 << 16)) return 3;
+            if (elementId > (1 << 8)) return 2;
+            return 1;
+        }
+        
+        public static byte SizeOf(uint elementId)
+        {
+            if (elementId > (1 << 24)) return 4;
+            if (elementId > (1 << 16)) return 3;
+            if (elementId > (1 << 8)) return 2;
+            return 1;
+        }
     }
 
-    // private static int ReadVInt()
-    // {
-    //     var width = ReadVIntValue();
-    //     var data = ReadBytes((int)width);
-    //
-    //     return BitConverter.ToInt32(data);
-    // }
-
-    private static int ReadId(int size)
+    private static int ReadElementId()
     {
-        var bytes = ReadBytes(size);
-        int result = bytes[0];
+        // element ids are structured as vints with the vint marker being included
+        var id = ReadVInt();
+        var idSize = BitMask.SizeOf(id);
         
-        // shift current octet to the left, or in the next octet
-        for (var index = 1; index < size; index++) result = (result << 8) | bytes[index];
-        return result;
+        // pos of idSize in most significant octet
+        var idMarkerBit = idSize * 8 - idSize;
+        
+        // the width marker bit is part of an id restore it
+        id = BitMask.Set(id, idMarkerBit);
+        return id;
     }
 
     private static string ReadString()
@@ -263,6 +285,13 @@ public class MatroskaVideo
         var length = ReadVInt();
         var bytes = ReadBytes(length);
         return Encoding.UTF8.GetString(bytes);
+    }
+
+    private static uint ReadUInt()
+    {
+        var size = ReadVInt();
+        var bytes = ReadBytes(size);
+        return ToUInt(bytes);
     }
 
     private static int ReadVInt()
@@ -278,106 +307,49 @@ public class MatroskaVideo
         // 0000 001X -> 7
         // 0000 0001 -> 8
         
-        var widthOctetCount = ReadBytes(1)[0];
-
+        // a vint always has a length of at least 1 octet
+        var width = ReadBytes(1)[0];
+        
         // https://www.rfc-editor.org/rfc/rfc8794#name-vint_width
         // step 1: determine width by finding our width marker
-        var vintWidth = 0;
-        if (BitMask.IsSet(widthOctetCount, 7)) vintWidth = 1;
-        else if (BitMask.IsSet(widthOctetCount, 6)) vintWidth = 2;
-        else if (BitMask.IsSet(widthOctetCount, 5)) vintWidth = 3;
-        else if (BitMask.IsSet(widthOctetCount, 4)) vintWidth = 4;
-        else if (BitMask.IsSet(widthOctetCount, 3)) vintWidth = 5;
-        else if (BitMask.IsSet(widthOctetCount, 2)) vintWidth = 6;
-        else if (BitMask.IsSet(widthOctetCount, 1)) vintWidth = 7;
-        else if (BitMask.IsSet(widthOctetCount, 0)) vintWidth = 8;
+        var additionalOctetCount = 0;
+        if (BitMask.IsSet(width, 7)) additionalOctetCount = 0;
+        else if (BitMask.IsSet(width, 6)) additionalOctetCount = 1;
+        else if (BitMask.IsSet(width, 5)) additionalOctetCount = 2;
+        else if (BitMask.IsSet(width, 4)) additionalOctetCount = 3;
+        else if (BitMask.IsSet(width, 3)) additionalOctetCount = 4;
+        else if (BitMask.IsSet(width, 2)) additionalOctetCount = 5;
+        else if (BitMask.IsSet(width, 1)) additionalOctetCount = 6;
+        else if (BitMask.IsSet(width, 0)) additionalOctetCount = 7;
 
-        // unset marker bit - first octet is part of the octet count
-        widthOctetCount = BitMask.Unset(widthOctetCount, 8 - vintWidth);
-        vintWidth--;
-
-        // throw when 0
+        // step 2: strip our marker bit
+        // first octet is still part of our value, dont discard!
+        int value = BitMask.Unset(width, 7 - additionalOctetCount);
+        if (width == 0) return value;
         
-        // include width octet, remove 1
-        var vintValueOctets = new byte[4];
-        var additionalWidthOctets = ReadBytes(vintWidth);
-        
-        // big endian, right to left
-        // for ()
-        
-        // big endian - largest value first
-        vintValueOctets[0] = BitMask.PadLeft(widthOctetCount, vintWidth);
-        var octets = DumpString(vintValueOctets);
+        // step 3: append our additional octets
+        var additionalOctets = ReadBytes(additionalOctetCount);
+        value <<= additionalOctetCount * 8;
+        value |= ToInt(additionalOctets);
 
-        for (var octetIdx = 1; octetIdx < additionalWidthOctets.Length; octetIdx++) vintValueOctets[octetIdx] = additionalWidthOctets[octetIdx];
-        
-        
-        // var vintValueBytes = vintWidthBytes
-        //     .Concat(ReadBytes(vintWidth - 1))
-        //     .Concat(Enumerable.Range( 0, 8 - vintWidth ).Select(x => (byte)0)) // ensure proper length for 64 bit int
-        //     .ToArray();
-        // var vintValueArr = new BitArray(vintWidthOctets);
-
-        // value = big endian
-        // if (BitConverter.IsLittleEndian) Array.Reverse(octets);
-        // for (var idx = 0; idx < vintWidth; idx++) vintValueArr.Set(7 - idx, false);
-
-        // var vintValue = new byte[8];
-        // vintValueArr.CopyTo(vintValue, 0);
-        
-        var value = BitConverter.ToInt32(vintValueOctets);
-        
-        // strip the width indicator bytes
-        return value; 
-
-        // var octetsArr = new BitArray(octets);
-
-        // mark all width octets as 0
-
-
-        // var data = new BitArray(vintWidth);
-        // data.Or(vintWidthArr);
-
-
-        // our width marker is part of our actual result
-
+        return value;
     }
-
-    // private static int ReadDataSizeInOctets()
-    // {
-    //     // start with support for size in a single octet
-    //     var sizeByte = ReadBytes(1);
-    //     var bitArr = new BitArray(sizeByte);
-    //
-    //     if (bitArr.Get(7)) return 7;
-    //     if (bitArr.Get(6)) return 6;
-    //     if (bitArr.Get(5)) return 5;
-    //     if (bitArr.Get(4)) return 4;
-    //     if (bitArr.Get(3)) return 3;
-    //     if (bitArr.Get(2)) return 2;
-    //     if (bitArr.Get(1)) return 1;
-    //     return 0; // invalid
-    // }
-
-    // private static int ReadHeaderElement(int elementId)
-    // {
-    //     var size = HeaderIds.SizeOf(elementId);
-    //     var element = ReadBytes(size);
-    //
-    //     var value = element;
-    // }
-
-    private static bool VerifyMasterId()
+    
+    private static int ToInt(byte[] octets)
     {
-        return ReadId(4) == HeaderIds.EBML;
-        
-        // var header = ReadBytes(4);
-        //
-        // return header[0] == 0x1a &&
-        //     header[1] == 0x45 &&
-        //     header[2] == 0xdf &&
-        //     header[3] == 0xa3;
+        int value = 0;
+        foreach (var octet in octets) value = (value << 8) | octet;
+        return value;
     }
+    
+    private static uint ToUInt(byte[] octets)
+    {
+        uint value = 0;
+        foreach (var octet in octets) value = (value << 8) | octet;
+        return value;
+    }
+
+    private static bool VerifyMasterId() => ReadElementId() == HeaderIds.EBML;
 
     private static byte[] ReadBytes(int count)
     {

@@ -1,4 +1,6 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace SubUtilities;
@@ -122,6 +124,19 @@ public class MatroskaVideo
         };
     }
 
+    public class MalformedDocumentException : Exception
+    {
+        public MalformedDocumentException(string message) : base(message)
+        {
+        }
+        
+        public MalformedDocumentException(string message, string documentationLink) : base(
+            message + "\r\n" + "For more information, see: " + documentationLink
+        )
+        {
+        }
+    }
+
     public static void Test()
     {
         // Parse Matroska file
@@ -133,10 +148,14 @@ public class MatroskaVideo
 
             // step 1: reading the header
             // an ebml document always starts with a header containing the following 4 bytes: 0x1A45DFA3
-            if (!VerifyMasterId()) throw new Exception("Expected master elementId to be: 0x1A45DFA3");
+            var masterElement = ReadElement();
             
-            // assume A3 -> 1
-            var masterSize = ReadVInt();
+            if(masterElement.Id != HeaderIds.EBML) throw new MalformedDocumentException("Expected master elementId to be: 0x1A45DFA3");
+            
+            // if (!VerifyMasterId()) throw new Exception("Expected master elementId to be: 0x1A45DFA3");
+            //
+            // // assume A3 -> 1
+            var masterSize = masterElement.Size.Data;
 
             // general element layout:
             // element id
@@ -145,39 +164,36 @@ public class MatroskaVideo
             
             while (masterSize > 0)
             {
-                var elementId = ReadElementId();
-                masterSize -= BitMask.SizeOf(elementId);
+                var element = ReadElement();
+                masterSize -= BitMask.SizeOf(element.Id);
+                masterSize -= BitMask.SizeOf(element.Size) + element.Size.Data;
                 
-                var name = HeaderIds.Lookup[elementId];
+                var name = HeaderIds.Lookup[element.Id];
                 Console.Write("Detected " + name + ": ");
                 
                 if (
-                    elementId == HeaderIds.DocType ||
-                    elementId == HeaderIds.DocTypeExtension ||
-                    elementId == HeaderIds.DocTypeExtensionName
+                    element.Type == ElementType.ASCIIString ||
+                    element.Type == ElementType.Utf8String
                 )
                 {
-                    var docType = ReadString();
+                    var docType = element.Type == ElementType.ASCIIString ? 
+                        ReadASCIIString(element) : 
+                        ReadUTF8String(element);
+                    
                     Console.WriteLine(docType);
-                    masterSize -= docType.Length;
-                    masterSize--; // string length
+                    
+                    continue;
                 }
 
-                if (
-                    elementId == HeaderIds.Version ||
-                    elementId == HeaderIds.ReadVersion ||
-                    elementId == HeaderIds.MaxIdLength ||
-                    elementId == HeaderIds.MaxSizeLength ||
-                    elementId == HeaderIds.DocTypeVersion || 
-                    elementId == HeaderIds.DocTypeReadVersion ||
-                    elementId == HeaderIds.DocTypeExtensionVersion
-                )
+                if (element.Type == ElementType.UnsignedInteger)
                 {
-                    var value = ReadUInt();
+                    var value = ReadUInt(element);
                     Console.WriteLine(value);
-                    masterSize -= BitMask.SizeOf(value);
-                    masterSize--; // account for width  
+                    
+                    continue;
                 }
+                
+                ConsumeUnknownElement(element);
             }
 
             // all master elements consist of 2 bytes
@@ -216,55 +232,89 @@ public class MatroskaVideo
         {
             _stream.Dispose();
         }
-
-        // first: what do we have... ?
-        // var buffer = new byte[1024];
-        // var bytes = stream.Read(buffer);
-        //
-        // var str = Encoding.UTF8.GetString(buffer);
-        // var str2 = str; // allow setting breakpoint
     }
 
-    class DebugUtilities
+    private static Element ReadElement()
     {
-        public static string DumpString(byte[] b) => String.Join(' ', b.Select( b => DumpString(b) ));
-        
-        public static string DumpString(int b) => String.Join(' ', Convert.ToString(b, toBase: 2)
-            .PadLeft(32, '0')
-            .Chunk(8)
-            .Select(x => String.Join("", x)));
-        public static string DumpString(byte b) => Convert.ToString(b, toBase: 2).PadLeft(8, '0');
-    }
+        var id = ReadElementId();
+        var width = ReadVInt();
+        var type = ElementType.Unknown;
 
-    private static int ReadElementId()
+        if (
+            id == HeaderIds.Version ||
+            id == HeaderIds.ReadVersion ||
+            id == HeaderIds.MaxIdLength ||
+            id == HeaderIds.MaxSizeLength ||
+            id == HeaderIds.DocTypeVersion ||
+            id == HeaderIds.DocTypeReadVersion ||
+            id == HeaderIds.DocTypeExtensionVersion
+        )
+        {
+            type = ElementType.UnsignedInteger;
+        }
+
+        if (
+            id == HeaderIds.DocType ||
+            id == HeaderIds.DocTypeExtension ||
+            id == HeaderIds.DocTypeExtensionName
+        )
+        {
+            type = ElementType.ASCIIString;
+        }
+
+        if (
+            id == HeaderIds.EBML
+        )
+        {
+            type = ElementType.Master;
+        }
+
+        return new Element(id, width, type);
+    }
+    
+    private static ElementId ReadElementId()
     {
         // element ids are structured as vints with the vint marker being included
-        var id = ReadVInt();
-        var idSize = BitMask.SizeOf(id);
+        var value = ReadVInt();
+        DebugUtilities.DumpHex(value);
         
-        // pos of idSize in most significant octet
-        var idMarkerBit = idSize * 8 - idSize;
-        
-        // the width marker bit is part of an id restore it
-        id = BitMask.Set(id, idMarkerBit);
-        return id;
+        return new ElementId(value);
     }
 
-    private static string ReadString()
+    private static string ReadASCIIString(Element element) => ReadString(element, Encoding.ASCII);
+
+    private static string ReadUTF8String(Element element) => ReadString(element, Encoding.UTF8);
+
+    private static string ReadString(Element element, Encoding encoding)
     {
-        var length = ReadVInt();
-        var bytes = ReadBytes(length);
-        return Encoding.UTF8.GetString(bytes);
+        if (element.Size.Data == 0) return String.Empty;
+        var bytes = ReadBytes(element.Size.Data);
+        return encoding.GetString(bytes);
     }
 
-    private static uint ReadUInt()
+    private static uint ReadUInt(Element element)
     {
-        var size = ReadVInt();
-        var bytes = ReadBytes(size);
+        var bytes = ReadBytes(element.Size.Data);
         return ToUInt(bytes);
     }
 
-    private static int ReadVInt()
+    private static void ConsumeUnknownElement(Element element)
+    {
+        if (element.Type != ElementType.Unknown) throw new InvalidOperationException("Expected unknown element!");
+
+        if (_stream.CanSeek) _stream.Seek(element.Size.Data, SeekOrigin.Current);
+        else throw new InvalidOperationException("Expected a seekable stream!");
+    } 
+    
+    /// <summary>
+    /// Read an integer of variable length, anatomy consists of: width, marker bit, value
+    ///
+    /// the width of a variable integer is embedded in the first octet, the width is calculated by taking the sum of all '0' bits 
+    ///
+    /// https://www.rfc-editor.org/rfc/rfc8794.pdf#name-vint_data
+    /// </summary>
+    /// <returns></returns>
+    private static VInt ReadVInt()
     {
         // the size of a vint is indicated by the first encountered `1` bit in an array of octets
         // for starting off, support only 1 octet
@@ -278,31 +328,31 @@ public class MatroskaVideo
         // 0000 0001 -> 8
         
         // a vint always has a length of at least 1 octet
-        var width = ReadBytes(1)[0];
+        int data = ReadBytes(1)[0];
         
         // https://www.rfc-editor.org/rfc/rfc8794#name-vint_width
         // step 1: determine width by finding our width marker
         var additionalOctetCount = 0;
-        if (BitMask.IsSet(width, 7)) additionalOctetCount = 0;
-        else if (BitMask.IsSet(width, 6)) additionalOctetCount = 1;
-        else if (BitMask.IsSet(width, 5)) additionalOctetCount = 2;
-        else if (BitMask.IsSet(width, 4)) additionalOctetCount = 3;
-        else if (BitMask.IsSet(width, 3)) additionalOctetCount = 4;
-        else if (BitMask.IsSet(width, 2)) additionalOctetCount = 5;
-        else if (BitMask.IsSet(width, 1)) additionalOctetCount = 6;
-        else if (BitMask.IsSet(width, 0)) additionalOctetCount = 7;
+        if (BitMask.IsSet(data, 7)) additionalOctetCount = 0;
+        else if (BitMask.IsSet(data, 6)) additionalOctetCount = 1;
+        else if (BitMask.IsSet(data, 5)) additionalOctetCount = 2;
+        else if (BitMask.IsSet(data, 4)) additionalOctetCount = 3;
+        else if (BitMask.IsSet(data, 3)) additionalOctetCount = 4;
+        else if (BitMask.IsSet(data, 2)) additionalOctetCount = 5;
+        else if (BitMask.IsSet(data, 1)) additionalOctetCount = 6;
+        else if (BitMask.IsSet(data, 0)) additionalOctetCount = 7;
 
         // step 2: strip our marker bit
         // first octet is still part of our value, dont discard!
-        int value = BitMask.Unset(width, 7 - additionalOctetCount);
-        if (width == 0) return value;
-        
+        data = BitMask.Unset(data, 7 - additionalOctetCount);
+        if (additionalOctetCount == 0) return new VInt(data);
+
         // step 3: append our additional octets
         var additionalOctets = ReadBytes(additionalOctetCount);
-        value <<= additionalOctetCount * 8;
-        value |= ToInt(additionalOctets);
+        data <<= additionalOctetCount * 8;
+        data |= ToInt(additionalOctets);
 
-        return value;
+        return new VInt(data);
     }
     
     // can we do this with generic math? -> needs to implement the proper operators
@@ -320,21 +370,51 @@ public class MatroskaVideo
         return value;
     }
 
-    private static bool VerifyMasterId() => ReadElementId() == HeaderIds.EBML;
-
     private static byte[] ReadBytes(int count)
     {
         if (count == 0) return Array.Empty<byte>();
         
         var bytes = new byte[count];
+        
+        // FIXME: Account for signage bit
         _stream.Read(bytes, 0, count);
         return bytes;
     }
 }
 
+static class DebugUtilities
+{
+    public static string DumpBinary(byte[] value) => String.Join(' ', value.Select( b => DumpBinary(b) ));
+
+    public static string DumpBinary(byte value) => Convert.ToString(value, toBase: 2).PadLeft(8, '0');
+    
+    public static string DumpBinary(int value) => String.Join(' ', Convert.ToString(value, toBase: 2)
+        .PadLeft(32, '0')
+        .Chunk(8)
+        .Select(x => String.Join("", x)));
+    public static string DumpBinary(VInt value) => DumpBinary(value.Data | value.Marker);
+
+    public static string DumpHex(VInt value)
+    {
+        var fullValue = value.Data | value.Marker;
+        var size = BitMask.SizeOf(fullValue);
+        var result = "0x";
+
+        // step 1: shift the octet to convert to the front
+        // step 2: convert to a byte as to only consume the first octet
+        // step 3: convert to hex representation
+        for (var i = size - 1; i >= 0; i--) result += Convert.ToString((byte)(fullValue >> (i * 8)), toBase: 16).ToUpper();
+
+        return result;
+    }
+    
+    public static string DumpDecimal(VInt value) => Convert.ToString(value.Data | value.Marker, toBase: 10);
+}
+
 static class BitMask
 {
     // generic math variants :-) for fun <-- not enough interop between different numeric types sadge
+    // IConvertable X -> Y?
     
     // public static bool IsSet<TNumber>(TNumber value, int position)
     //     where TNumber : IShiftOperators<TNumber, int, TNumber>,
@@ -352,16 +432,19 @@ static class BitMask
     //     IBitwiseOperators<TNumber, int, TNumber>
     //     => value | ~(1 << position);
     
-    public static bool IsSet(byte b, int pos) => (b & (1 << pos)) != 0;
-    public static bool IsUnset(byte b, int pos) => (b & (1 << pos)) == 0;
+    public static bool IsSet(int value, int pos) => (value & (1 << pos)) != 0;
+    public static bool IsSet(byte value, int pos) => (value & (1 << pos)) != 0;
+    public static bool IsUnset(byte value, int pos) => (value & (1 << pos)) == 0;
 
-    public static int Set(int b, int pos) => (b | (1 << pos));
-    public static byte Set(byte b, int pos) => (byte)(b | (1 << pos));
-    public static int Unset(int b, int pos) => (b & ~(1 << pos));
-    public static byte Unset(byte b, int pos) => (byte)(b & ~(1 << pos));
+    public static long Set(long value, int pos) => value | (1 << pos);
+    public static int Set(int value, int pos) => value | (1 << pos);
+    public static byte Set(byte value, int pos) => (byte)(value | (1 << pos));
+    
+    public static int Unset(int value, int pos) => (value & ~(1 << pos));
+    public static byte Unset(byte value, int pos) => (byte)(value & ~(1 << pos));
 
-    public static int PadLeft(int b, int bits) => (b << bits);
-    public static byte PadLeft(byte b, int bits) => (byte)(b << bits);
+    public static int PadLeft(int value, int bits) => (value << bits);
+    public static byte PadLeft(byte value, int bits) => (byte)(value << bits);
         
     
     public static byte SizeOf(int elementId)
@@ -371,7 +454,7 @@ static class BitMask
         if (elementId > (1 << 8)) return 2;
         return 1;
     }
-        
+
     public static byte SizeOf(uint elementId)
     {
         if (elementId > (1 << 24)) return 4;
@@ -379,4 +462,143 @@ static class BitMask
         if (elementId > (1 << 8)) return 2;
         return 1;
     }
+    
+    public static int SizeOf(ElementId elementId) => elementId.AsVInt().Width;
+
+    public static int SizeOf(VInt vint) => vint.Width;
+}
+
+// TODO: Investigate 'Length' type as a bridge between different numeric types?
+
+// structures representing the lowest individual aspects of our ebml documents
+
+public interface IElement<TSelf, TValue> where TSelf : IElement<TSelf, TValue>
+{
+
+    ElementId Id { get; }
+        
+}
+
+public struct Element
+{
+    public Element(ElementId id, VInt size, ElementType type)
+    {
+        Id = id;
+        Size = size;
+        Type = type;
+    }
+
+    public readonly ElementId Id;
+    
+    // todo: account for unknown sizes
+    // see: https://www.rfc-editor.org/rfc/rfc8794.pdf#name-unknown-data-size
+    public readonly VInt Size;
+
+    public readonly ElementType Type;
+}
+
+[DebuggerDisplay("{DebuggerView()}")]
+public struct ElementId
+{
+
+    private readonly ulong _value;
+        
+    // public ElementId(uint value)
+    // {
+    //     _value = value;
+    // }
+        
+    // FIXME: Don't allow casts to long/int, invalid types
+        
+    public ElementId(long value) => _value = (ulong)value;
+    public ElementId(ulong value) => _value = value;
+    public ElementId(int value) => _value = (ulong)(value);
+    public ElementId(VInt value) => _value = (ulong)(value.Data | value.Marker);
+
+    public static implicit operator ulong(ElementId e) => e._value;
+    public static implicit operator long(ElementId e) => (long)e._value;
+    public static implicit operator int(ElementId e) => (int)e._value;
+
+    public VInt AsVInt() => new VInt((int)_value);
+    
+    [DebuggerHidden]
+    private string DebuggerView() => $"Hex: {DebugUtilities.DumpHex(AsVInt())}, Binary: {DebugUtilities.DumpBinary(AsVInt())}";
+    // public static implicit operator uint(ElementId e) => (uint)e._value;
+
+    // public static implicit operator ElementId(ulong value) => new ElementId(value);
+    // public static implicit operator ElementId(uint value) => new ElementId(value);
+}
+    
+[DebuggerDisplay("{DebuggerView()}")]
+public struct VInt
+{
+    
+    public VInt(int data)
+    {
+        Data = data;
+        Width = BitMask.SizeOf(data);
+        
+        // total octets * octet size - total octets
+        Marker = BitMask.Set( 0, (Width * 8) - Width );
+    }
+        
+    public readonly int Width;
+        
+    public readonly int Data;
+
+    public readonly int Marker;
+
+    // public static implicit operator int(VInt self) => self.Data;
+        
+    [DebuggerHidden]
+    private string DebuggerView() => $"Hex: {DebugUtilities.DumpHex(this)}, Data: {Data}, Width: {Width}, Binary: {DebugUtilities.DumpBinary(this)}";
+}
+
+// abstract class? -> embed metadata, CanHaveChildElements, ShouldConsume, etc, etc.
+public enum ElementType
+{
+    /// <summary>
+    /// https://www.rfc-editor.org/rfc/rfc8794.pdf#name-signed-integer-element
+    /// </summary>
+    SignedInteger,
+        
+    /// <summary>
+    /// https://www.rfc-editor.org/rfc/rfc8794.pdf#name-unsigned-integer-element
+    /// </summary>
+    UnsignedInteger,
+        
+    /// <summary>
+    /// https://www.rfc-editor.org/rfc/rfc8794.pdf#name-float-element
+    /// </summary>
+    Float,
+        
+    /// <summary>
+    /// https://www.rfc-editor.org/rfc/rfc8794.pdf#name-string-element
+    /// </summary>
+    ASCIIString,
+        
+    /// <summary>
+    /// https://www.rfc-editor.org/rfc/rfc8794.pdf#name-utf-8-element
+    /// </summary>
+    Utf8String,
+        
+    /// <summary>
+    /// https://www.rfc-editor.org/rfc/rfc8794.pdf#name-date-element
+    /// </summary>
+    Date,
+        
+    /// <summary>
+    /// https://www.rfc-editor.org/rfc/rfc8794.pdf#name-master-element
+    /// </summary>
+    Master,
+        
+    /// <summary>
+    /// https://www.rfc-editor.org/rfc/rfc8794.pdf#name-binary-element
+    /// </summary>
+    Binary,
+    
+    /// <summary>
+    /// Unknown element type, can be consumed but not meaningfully used
+    /// </summary>
+    Unknown
 }

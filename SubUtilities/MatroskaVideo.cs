@@ -196,6 +196,8 @@ public class MatroskaVideo
                 ConsumeUnknownElement(element);
             }
 
+            var bodyElement1 = ReadElement();
+
             // all master elements consist of 2 bytes
             // var elementId = ReadId(2);
             // var name = HeaderIds.Lookup[elementId];
@@ -349,14 +351,14 @@ public class MatroskaVideo
         // step 2: strip our marker bit
         // first octet is still part of our value, dont discard!
         data = BitMask.Unset(data, 7 - additionalOctetCount);
-        if (additionalOctetCount == 0) return new VInt((int)data);
+        if (additionalOctetCount == 0) return new VInt(data);
 
         // step 3: append our additional octets
         var additionalOctets = ReadBytes(additionalOctetCount);
         data <<= additionalOctetCount * 8;
         data |= ToLong(additionalOctets);
 
-        return new VInt((int)data);
+        return new VInt(data);
     }
     
     // can we do this with generic math? -> needs to implement the proper operators
@@ -381,14 +383,14 @@ public class MatroskaVideo
         return value;
     }
 
-    private static byte[] ReadBytes(int count)
+    private static byte[] ReadBytes(long count)
     {
         if (count == 0) return Array.Empty<byte>();
         
         var bytes = new byte[count];
         
-        // FIXME: Account for signage bit
-        _stream.Read(bytes, 0, count);
+        // FIXME: Make use of last 32 bytes
+        _stream.Read(bytes, 0, (int)count);
         return bytes;
     }
 }
@@ -399,10 +401,16 @@ static class DebugUtilities
 
     public static string DumpBinary(byte value) => Convert.ToString(value, toBase: 2).PadLeft(8, '0');
     
+    public static string DumpBinary(long value) => String.Join(' ', Convert.ToString(value, toBase: 2)
+        .PadLeft(32, '0')
+        .Chunk(8)
+        .Select(x => String.Join("", x)));
+    
     public static string DumpBinary(int value) => String.Join(' ', Convert.ToString(value, toBase: 2)
         .PadLeft(32, '0')
         .Chunk(8)
         .Select(x => String.Join("", x)));
+    
     public static string DumpBinary(VInt value) => DumpBinary(value.Data | value.Marker);
 
     public static string DumpHex(VInt value)
@@ -468,19 +476,43 @@ static class BitMask
     public static byte ReadOctet(int value, int octet) => (byte)(value >> (octet * 8));
     public static byte ReadOctet(short value, int octet) => (byte)(value >> (octet * 8));
 
-    public static byte SizeOf(int elementId)
+    public static byte SizeOf(ulong value)
     {
-        if (elementId > (1 << 24)) return 4;
-        if (elementId > (1 << 16)) return 3;
-        if (elementId > (1 << 8)) return 2;
+        if (value > (1L << 56)) return 8;
+        if (value > (1L << 48)) return 7;
+        if (value > (1L << 40)) return 6;
+        if (value > (1L << 32)) return 5;
+        if (value > (1L << 24)) return 4;
+        if (value > (1L << 16)) return 3;
+        if (value > (1L << 8)) return 2;
+        return 1;
+    }
+    
+    public static byte SizeOf(long value)
+    {
+        if (value > (1L << 56)) return 8;
+        if (value > (1L << 48)) return 7;
+        if (value > (1L << 40)) return 6;
+        if (value > (1L << 32)) return 5;
+        if (value > (1L << 24)) return 4;
+        if (value > (1L << 16)) return 3;
+        if (value > (1L << 8)) return 2;
+        return 1;
+    }
+    
+    public static byte SizeOf(int value)
+    {
+        if (value > (1 << 24)) return 4;
+        if (value > (1 << 16)) return 3;
+        if (value > (1 << 8)) return 2;
         return 1;
     }
 
-    public static byte SizeOf(uint elementId)
+    public static byte SizeOf(uint value)
     {
-        if (elementId > (1 << 24)) return 4;
-        if (elementId > (1 << 16)) return 3;
-        if (elementId > (1 << 8)) return 2;
+        if (value > (1 << 24)) return 4;
+        if (value > (1 << 16)) return 3;
+        if (value > (1 << 8)) return 2;
         return 1;
     }
     
@@ -554,7 +586,7 @@ public struct ElementId
 public struct VInt
 {
     
-    public VInt(int data)
+    public VInt(long data)
     {
         Data = data;
         Width = BitMask.SizeOf(data);
@@ -565,9 +597,9 @@ public struct VInt
         
     public readonly int Width;
         
-    public readonly int Data;
+    public readonly long Data;
 
-    public readonly int Marker;
+    public readonly long Marker;
 
     // public static implicit operator int(VInt self) => self.Data;
         

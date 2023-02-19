@@ -159,7 +159,7 @@ public class MatroskaVideo
             _elementLookup = doc.Elements.ToDictionary(x => Int64.Parse(x.Id[2..], NumberStyles.HexNumber), x => x);
         }
         
-        public static MatroskaElement FindElement(ElementId id)
+        public static MatroskaElement? FindElement(ElementId id)
         {
             return _elementLookup.TryGetValue(id, out var el) ? el : null;
 
@@ -185,6 +185,7 @@ public class MatroskaVideo
     }
 
     // [Serializable]
+    [DebuggerDisplay("{Path}")]
     public class MatroskaElement
     {
         [XmlAttribute("name")]
@@ -287,11 +288,56 @@ public class MatroskaVideo
                 ConsumeUnknownElement(element);
             }
 
-            var body = ReadElement();
-            var mBody = MatroskaElementRegistry.FindElement(body.Id);
+            var segment = ReadElement();
+            ConsumeMasterElement(segment);
             
-            var bodyContent = ReadElement();
-            var mBodyContent = MatroskaElementRegistry.FindElement(bodyContent.Id);
+            // var body = ReadElement();
+            // var bodySize = body.Size.Data;
+            //
+            // while (bodySize > 0)
+            // {
+            //     var element = ReadElement();
+            //     bodySize -= BitMask.SizeOf(element.Id);
+            //     bodySize -= BitMask.SizeOf(element.Size) + element.Size.Data;
+            //
+            //     var matroskaElement = MatroskaElementRegistry.FindElement(element.Id);
+            //     if (matroskaElement == null)
+            //     {
+            //         ConsumeUnknownElement(element);
+            //         continue;
+            //     }
+            //     
+            //     Console.Write("Detected: " + matroskaElement.Path);
+            //     
+            //     if (
+            //         element.Type == ElementType.ASCIIString ||
+            //         element.Type == ElementType.Utf8String
+            //     )
+            //     {
+            //         var docType = element.Type == ElementType.ASCIIString ? 
+            //             ReadASCIIString(element) : 
+            //             ReadUTF8String(element);
+            //         
+            //         Console.WriteLine(docType);
+            //         
+            //         continue;
+            //     }
+            //
+            //     if (element.Type == ElementType.UnsignedInteger)
+            //     {
+            //         var value = ReadUInt(element);
+            //         Console.WriteLine(value);
+            //         
+            //         continue;
+            //     }
+            //     
+            //     ConsumeUnknownElement(element);
+            // }
+            
+            // var mBody = MatroskaElementRegistry.FindElement(body.Id);
+            //
+            // var bodyContent = ReadElement();
+            // var mBodyContent = MatroskaElementRegistry.FindElement(bodyContent.Id);
 
             // all master elements consist of 2 bytes
             // var elementId = ReadId(2);
@@ -331,6 +377,62 @@ public class MatroskaVideo
         }
     }
 
+    private static void ConsumeMasterElement(Element masterElement)
+    {
+        if (masterElement.Type != ElementType.Master) throw new ArgumentException("Expected element with type Master!");
+        
+        var size = masterElement.Size.Data;
+
+        while (size > 0)
+        {
+            var element = ReadElement();
+            size -= BitMask.SizeOf(element.Id);
+            size -= BitMask.SizeOf(element.Size) + element.Size.Data;
+
+            var matroskaElement = MatroskaElementRegistry.FindElement(element.Id);
+            if (matroskaElement == null)
+            {
+                ConsumeUnknownElement(element);
+                continue;
+            }
+                
+            Console.Write("Detected: " + matroskaElement.Path);
+                
+            if (
+                element.Type == ElementType.ASCIIString ||
+                element.Type == ElementType.Utf8String
+            )
+            {
+                var docType = element.Type == ElementType.ASCIIString ? 
+                    ReadASCIIString(element) : 
+                    ReadUTF8String(element);
+                    
+                Console.WriteLine(docType);
+                    
+                continue;
+            }
+
+            if (element.Type == ElementType.UnsignedInteger)
+            {
+                var value = ReadUInt(element);
+                Console.WriteLine(value);
+                    
+                continue;
+            }
+
+            if (element.Type == ElementType.Master)
+            {
+                Console.WriteLine("Master");
+                ConsumeMasterElement(element);
+                
+                continue;
+            }
+            
+            ConsumeUnknownElement(element);
+        }
+
+    }
+
     private static Element ReadElement()
     {
         var id = ReadElementId();
@@ -366,6 +468,24 @@ public class MatroskaVideo
             type = ElementType.Master;
         }
 
+        var matroskaElement = MatroskaElementRegistry.FindElement(id);
+        if (matroskaElement != null)
+        {
+            type = matroskaElement.Type switch
+            {
+                "integer" => ElementType.SignedInteger,
+                "uinteger" => ElementType.UnsignedInteger,
+                "float" => ElementType.Float,
+                "string" => ElementType.ASCIIString,
+                "date" => ElementType.Date,
+                "utf-8" => ElementType.Utf8String,
+                "master" => ElementType.Master,
+                "binary" => ElementType.Binary,
+                
+                _=> ElementType.Unknown
+            };
+        }
+
         return new Element(id, width, type);
     }
     
@@ -397,7 +517,7 @@ public class MatroskaVideo
 
     private static void ConsumeUnknownElement(Element element)
     {
-        if (element.Type != ElementType.Unknown) throw new InvalidOperationException("Expected unknown element!");
+        // if (element.Type != ElementType.Unknown) throw new InvalidOperationException("Expected unknown element!");
 
         if (_stream.CanSeek) _stream.Seek(element.Size.Data, SeekOrigin.Current);
         else throw new InvalidOperationException("Expected a seekable stream!");

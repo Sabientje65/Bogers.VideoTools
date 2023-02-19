@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -550,7 +551,7 @@ public struct Element
     public readonly ElementType Type;
 }
 
-[DebuggerDisplay("{DebuggerView()}")]
+[DebuggerDisplay("{DebuggerView}")]
 public struct ElementId
 {
 
@@ -574,15 +575,17 @@ public struct ElementId
 
     public VInt AsVInt() => new VInt((int)_value);
     
+    
     [DebuggerHidden]
-    private string DebuggerView() => $"Hex: {DebugUtilities.DumpHex(AsVInt())}, Binary: {DebugUtilities.DumpBinary(AsVInt())}";
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    private string DebuggerView => $"Hex: {DebugUtilities.DumpHex(AsVInt())}, Binary: {DebugUtilities.DumpBinary(AsVInt())}";
     // public static implicit operator uint(ElementId e) => (uint)e._value;
 
     // public static implicit operator ElementId(ulong value) => new ElementId(value);
     // public static implicit operator ElementId(uint value) => new ElementId(value);
 }
     
-[DebuggerDisplay("{DebuggerView()}")]
+[DebuggerDisplay("{DebuggerView}")]
 public struct VInt
 {
     
@@ -603,8 +606,10 @@ public struct VInt
 
     // public static implicit operator int(VInt self) => self.Data;
         
+    
     [DebuggerHidden]
-    private string DebuggerView() => $"Hex: {DebugUtilities.DumpHex(this)}, Data: {Data}, Width: {Width}, Binary: {DebugUtilities.DumpBinary(this)}";
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public string DebuggerView => $"Hex: {DebugUtilities.DumpHex(this)}, Data: {Data}, Width: {Width}, Binary: {DebugUtilities.DumpBinary(this)}";
 }
 
 // abstract class? -> embed metadata, CanHaveChildElements, ShouldConsume, etc, etc.

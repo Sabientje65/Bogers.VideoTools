@@ -1,8 +1,9 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using System.Text;
+using System.Xml.Serialization;
 
 namespace SubUtilities;
 
@@ -19,7 +20,7 @@ public class MatroskaVideo
     private static Stream _stream;
 
     // should generate this from spec
-    private static class HeaderIds
+    private static class WellKnownIds
     {
         /// <summary>
         /// Master element
@@ -109,6 +110,18 @@ public class MatroskaVideo
         /// </summary>
         public const int DocTypeExtensionVersion = 0x4284;
 
+        /// <summary>
+        /// Cyclic Redundancy Check
+        /// </summary>
+        public const int CRC32 = 0xBF;
+        
+        /// <summary>
+        /// Void, binary
+        ///
+        /// Element no data, used for marking wiped sectors, reserved space, etc.
+        /// </summary>
+        public const int Void = 0xEC;
+
         public static IDictionary<int, string> Lookup = new Dictionary<int, string>
         {
             { EBML, nameof(EBML) },
@@ -124,6 +137,81 @@ public class MatroskaVideo
             { DocTypeExtensionVersion, nameof(DocTypeExtensionVersion) },
         };
     }
+
+    public static class MatroskaElementRegistry
+    {
+        private static bool _initialized = false;
+        private static IDictionary<long, MatroskaElement> _elementLookup;
+
+
+        public static void Init()
+        {
+            if (_initialized) return;
+            _initialized = true;
+            
+            _elementLookup = new Dictionary<long, MatroskaElement>();
+            using var fs = File.OpenRead(@"E:\src\Bogers.VideoTools\SubUtilities\TestFiles\ebml_matroska.xml");
+            
+            // using var xDoc = new XmlTextReader(@"E:\src\Bogers.VideoTools\SubUtilities\TestFiles\ebml_matroska.xml");
+            var serializer = new XmlSerializer(typeof(MatroskaDocument));
+
+            var doc = serializer.Deserialize(fs) as MatroskaDocument;
+            _elementLookup = doc.Elements.ToDictionary(x => Int64.Parse(x.Id[2..], NumberStyles.HexNumber), x => x);
+        }
+        
+        public static MatroskaElement FindElement(ElementId id)
+        {
+            return _elementLookup.TryGetValue(id, out var el) ? el : null;
+
+            // return _elementLookup[id];
+        }
+    }
+
+    // codegenerator? -> MatroskaElementRegistry.Generated.cs
+    [XmlRoot("EBMLSchema", Namespace = "urn:ietf:rfc:8794")]
+    public class MatroskaDocument
+    {
+        [XmlAttribute("docType")]
+        public string DocType { get; set; }
+        
+        [XmlAttribute("version")]
+        public int Version { get; set; }
+        
+        // [XmlArray]
+        // [XmlArrayItem("element", typeof(MatroskaElement))]
+        
+        [XmlElement("element")]
+        public List<MatroskaElement> Elements { get; set; }
+    }
+
+    // [Serializable]
+    public class MatroskaElement
+    {
+        [XmlAttribute("name")]
+        public string Name { get; set; }
+
+        [XmlAttribute("path")]
+        public string Path { get; set; }
+
+        [XmlAttribute("id")]
+        public string Id { get; set; }
+        
+        [XmlAttribute("type")]
+        public string Type { get; set; }
+        
+        [XmlAttribute("range")]
+        public string Range { get; set; }
+        
+        [XmlAttribute("default")]
+        public string Default { get; set; }
+        
+        [XmlAttribute("minOccurs")]
+        public string MinOccurs { get; set; }
+        
+        [XmlAttribute("maxOccurs")]
+        public string MaxOccurs { get; set; }
+    }
+    
 
     public class MalformedDocumentException : Exception
     {
@@ -143,6 +231,8 @@ public class MatroskaVideo
         // Parse Matroska file
         try
         {
+            MatroskaElementRegistry.Init();
+            
             // var file = @"E:\src\Bogers.VideoTools\SubUtilities\TestFiles\test5.mkv";
             var file = @"D:\Users\danny\Downloads\matroska_test_w1_1\test5.mkv"; // start off simple
             _stream = File.OpenRead(file);
@@ -151,7 +241,7 @@ public class MatroskaVideo
             // an ebml document always starts with a header containing the following 4 bytes: 0x1A45DFA3
             var masterElement = ReadElement();
             
-            if(masterElement.Id != HeaderIds.EBML) throw new MalformedDocumentException("Expected master elementId to be: 0x1A45DFA3");
+            if(masterElement.Id != WellKnownIds.EBML) throw new MalformedDocumentException("Expected master elementId to be: 0x1A45DFA3");
             
             // if (!VerifyMasterId()) throw new Exception("Expected master elementId to be: 0x1A45DFA3");
             //
@@ -169,7 +259,7 @@ public class MatroskaVideo
                 masterSize -= BitMask.SizeOf(element.Id);
                 masterSize -= BitMask.SizeOf(element.Size) + element.Size.Data;
                 
-                var name = HeaderIds.Lookup[element.Id];
+                var name = WellKnownIds.Lookup[element.Id];
                 Console.Write("Detected " + name + ": ");
                 
                 if (
@@ -197,7 +287,11 @@ public class MatroskaVideo
                 ConsumeUnknownElement(element);
             }
 
-            var bodyElement1 = ReadElement();
+            var body = ReadElement();
+            var mBody = MatroskaElementRegistry.FindElement(body.Id);
+            
+            var bodyContent = ReadElement();
+            var mBodyContent = MatroskaElementRegistry.FindElement(bodyContent.Id);
 
             // all master elements consist of 2 bytes
             // var elementId = ReadId(2);
@@ -244,29 +338,29 @@ public class MatroskaVideo
         var type = ElementType.Unknown;
 
         if (
-            id == HeaderIds.Version ||
-            id == HeaderIds.ReadVersion ||
-            id == HeaderIds.MaxIdLength ||
-            id == HeaderIds.MaxSizeLength ||
-            id == HeaderIds.DocTypeVersion ||
-            id == HeaderIds.DocTypeReadVersion ||
-            id == HeaderIds.DocTypeExtensionVersion
+            id == WellKnownIds.Version ||
+            id == WellKnownIds.ReadVersion ||
+            id == WellKnownIds.MaxIdLength ||
+            id == WellKnownIds.MaxSizeLength ||
+            id == WellKnownIds.DocTypeVersion ||
+            id == WellKnownIds.DocTypeReadVersion ||
+            id == WellKnownIds.DocTypeExtensionVersion
         )
         {
             type = ElementType.UnsignedInteger;
         }
 
         if (
-            id == HeaderIds.DocType ||
-            id == HeaderIds.DocTypeExtension ||
-            id == HeaderIds.DocTypeExtensionName
+            id == WellKnownIds.DocType ||
+            id == WellKnownIds.DocTypeExtension ||
+            id == WellKnownIds.DocTypeExtensionName
         )
         {
             type = ElementType.ASCIIString;
         }
 
         if (
-            id == HeaderIds.EBML
+            id == WellKnownIds.EBML
         )
         {
             type = ElementType.Master;
@@ -345,10 +439,6 @@ public class MatroskaVideo
         else if (BitMask.IsSet(data, 1)) additionalOctetCount = 6;
         else if (BitMask.IsSet(data, 0)) additionalOctetCount = 7;
 
-        // var y = data & 1;
-        
-        BitMask.IsSet(1, 1);
-
         // step 2: strip our marker bit
         // first octet is still part of our value, dont discard!
         data = BitMask.Unset(data, 7 - additionalOctetCount);
@@ -413,14 +503,14 @@ static class DebugUtilities
         .Select(x => String.Join("", x)));
     
     public static string DumpBinary(VInt value) => DumpBinary(value.Data | value.Marker);
+    public static string DumpHex(VInt value) => DumpHex(value.Data | value.Marker);
 
-    public static string DumpHex(VInt value)
+    public static string DumpHex(long value)
     {
-        var fullValue = value.Data | value.Marker;
-        var size = BitMask.SizeOf(fullValue);
+        var size = BitMask.SizeOf(value);
         var result = "0x";
 
-        for (var i = size - 1; i >= 0; i--) result += Convert.ToString(BitMask.ReadOctet(fullValue, i), toBase: 16).ToUpper();
+        for (var i = size - 1; i >= 0; i--) result += Convert.ToString(BitMask.ReadOctet(value, i), toBase: 16).ToUpper();
 
         return result;
     }
@@ -434,7 +524,7 @@ static class BitMask
         where TValue : IBitwiseOperators<TValue, TValue, TValue>,  // can perform bitwise ops with self
                        IComparisonOperators<TValue, TValue, bool>, // can compare with self
                        IShiftOperators<TValue, int, TValue>,       // can shift self with int resulting in self
-                       INumber<TValue>                             // contains 'one' static
+                       INumber<TValue>                             // contains 'one' and 'zero' statics
     => (value & (TValue.One << bit)) != TValue.Zero;
     
     public static bool IsUnset<TValue>(TValue value, int bit)
@@ -442,7 +532,7 @@ static class BitMask
                        IComparisonOperators<TValue, TValue, bool>,
                        IShiftOperators<TValue, int, TValue>,
                        INumber<TValue>
-    => (value & (TValue.One << bit)) != TValue.Zero;
+    => (value & (TValue.One << bit)) == TValue.Zero;
 
     public static TValue Set<TValue>(TValue value, int bit)
         where TValue : IBitwiseOperators<TValue, TValue, TValue>,
@@ -595,7 +685,7 @@ public struct VInt
         Width = BitMask.SizeOf(data);
         
         // total octets * octet size - total octets
-        Marker = BitMask.Set( 0, (Width * 8) - Width );
+        Marker = BitMask.Set( 0, Width * 8 - Width );
     }
         
     public readonly int Width;

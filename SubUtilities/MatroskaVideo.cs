@@ -204,15 +204,15 @@ public class MatroskaVideo
             //     var docType = ReadString();
             //     Console.WriteLine("Detected doctype: " + docType);
             // }
-            
-            
+
+
             // https://www.matroska.org/technical/notes.html#example-of-segment-position, should skip the *length* we read for our first meaningful element?
-            
+
             // var master = ReadVInt();
-            
+
             // var masterValue = ReadBytes((int)masterSize);
-            
-            
+
+
             // var octet = ReadBytes(1)[0];
             // StringifyBits(octet);
 
@@ -328,7 +328,7 @@ public class MatroskaVideo
         // 0000 0001 -> 8
         
         // a vint always has a length of at least 1 octet
-        int data = ReadBytes(1)[0];
+        long data = ReadBytes(1)[0];
         
         // https://www.rfc-editor.org/rfc/rfc8794#name-vint_width
         // step 1: determine width by finding our width marker
@@ -342,20 +342,31 @@ public class MatroskaVideo
         else if (BitMask.IsSet(data, 1)) additionalOctetCount = 6;
         else if (BitMask.IsSet(data, 0)) additionalOctetCount = 7;
 
+        // var y = data & 1;
+        
+        BitMask.IsSet(1, 1);
+
         // step 2: strip our marker bit
         // first octet is still part of our value, dont discard!
         data = BitMask.Unset(data, 7 - additionalOctetCount);
-        if (additionalOctetCount == 0) return new VInt(data);
+        if (additionalOctetCount == 0) return new VInt((int)data);
 
         // step 3: append our additional octets
         var additionalOctets = ReadBytes(additionalOctetCount);
         data <<= additionalOctetCount * 8;
-        data |= ToInt(additionalOctets);
+        data |= ToLong(additionalOctets);
 
-        return new VInt(data);
+        return new VInt((int)data);
     }
     
     // can we do this with generic math? -> needs to implement the proper operators
+    private static long ToLong(byte[] octets)
+    {
+        int value = 0;
+        foreach (var octet in octets) value = (value << 8) | octet;
+        return value;
+    }
+    
     private static int ToInt(byte[] octets)
     {
         int value = 0;
@@ -400,10 +411,7 @@ static class DebugUtilities
         var size = BitMask.SizeOf(fullValue);
         var result = "0x";
 
-        // step 1: shift the octet to convert to the front
-        // step 2: convert to a byte as to only consume the first octet
-        // step 3: convert to hex representation
-        for (var i = size - 1; i >= 0; i--) result += Convert.ToString((byte)(fullValue >> (i * 8)), toBase: 16).ToUpper();
+        for (var i = size - 1; i >= 0; i--) result += Convert.ToString(BitMask.ReadOctet(fullValue, i), toBase: 16).ToUpper();
 
         return result;
     }
@@ -413,40 +421,53 @@ static class DebugUtilities
 
 static class BitMask
 {
-    // generic math variants :-) for fun <-- not enough interop between different numeric types sadge
-    // IConvertable X -> Y?
+    public static bool IsSet<TValue>(TValue value, int bit)
+        where TValue : IBitwiseOperators<TValue, TValue, TValue>,  // can perform bitwise ops with self
+                       IComparisonOperators<TValue, TValue, bool>, // can compare with self
+                       IShiftOperators<TValue, int, TValue>,       // can shift self with int resulting in self
+                       INumber<TValue>                             // contains 'one' static
+    => (value & (TValue.One << bit)) != TValue.Zero;
     
-    // public static bool IsSet<TNumber>(TNumber value, int position)
-    //     where TNumber : IShiftOperators<TNumber, int, TNumber>,
-    //                     IBitwiseOperators<TNumber, int, TNumber>,
-    //                     IComparisonOperators<TNumber, int, bool>
-    //     => (value & (1 << position)) != 0;
+    public static bool IsUnset<TValue>(TValue value, int bit)
+        where TValue : IBitwiseOperators<TValue, TValue, TValue>, 
+                       IComparisonOperators<TValue, TValue, bool>,
+                       IShiftOperators<TValue, int, TValue>,
+                       INumber<TValue>
+    => (value & (TValue.One << bit)) != TValue.Zero;
 
-    // public static TNumber Set<TNumber>(TNumber value, int position)
-    //     where TNumber : IShiftOperators<TNumber, int, TNumber>,
-    //     IBitwiseOperators<TNumber, int, TNumber>
-    //     => value | (1 << position);
-    //
-    // public static TNumber Unset<TNumber>(TNumber value, int position)
-    //     where TNumber : IShiftOperators<TNumber, int, TNumber>,
-    //     IBitwiseOperators<TNumber, int, TNumber>
-    //     => value | ~(1 << position);
+    public static TValue Set<TValue>(TValue value, int bit)
+        where TValue : IBitwiseOperators<TValue, TValue, TValue>,
+                       IShiftOperators<TValue, int, TValue>,
+                       INumber<TValue>
+    => value | (TValue.One << bit);
     
-    public static bool IsSet(int value, int pos) => (value & (1 << pos)) != 0;
-    public static bool IsSet(byte value, int pos) => (value & (1 << pos)) != 0;
-    public static bool IsUnset(byte value, int pos) => (value & (1 << pos)) == 0;
+    public static TValue Unset<TValue>(TValue value, int bit)
+        where TValue : IBitwiseOperators<TValue, TValue, TValue>,
+                       IShiftOperators<TValue, int, TValue>,
+                       INumber<TValue>
+    => value & ~(TValue.One << bit);
 
-    public static long Set(long value, int pos) => value | (1 << pos);
-    public static int Set(int value, int pos) => value | (1 << pos);
-    public static byte Set(byte value, int pos) => (byte)(value | (1 << pos));
-    
-    public static int Unset(int value, int pos) => (value & ~(1 << pos));
-    public static byte Unset(byte value, int pos) => (byte)(value & ~(1 << pos));
 
-    public static int PadLeft(int value, int bits) => (value << bits);
-    public static byte PadLeft(byte value, int bits) => (byte)(value << bits);
-        
+
+    // public static bool IsSet(long value, int pos) => (value & (1 << pos)) != 0;
+    // public static bool IsSet(int value, int pos) => (value & (1 << pos)) != 0;
+    // public static bool IsSet(byte value, int pos) => (value & (1 << pos)) != 0;
+    // public static bool IsUnset(byte value, int pos) => (value & (1 << pos)) != 0;
+
+    // public static long Set(long value, int pos) => value | (1 << pos);
+    // public static int Set(int value, int pos) => value | (1 << pos);
+    // public static byte Set(byte value, int pos) => (byte)(value | (1 << pos));
     
+    // public static int Unset(int value, int pos) => (value & ~(1 << pos));
+    // public static byte Unset(byte value, int pos) => (byte)(value & ~(1 << pos));
+
+    // public static int PadLeft(int value, int bits) => (value << bits);
+    // public static byte PadLeft(byte value, int bits) => (byte)(value << bits);
+    
+    public static byte ReadOctet(long value, int octet) => (byte)(value >> (octet * 8));
+    public static byte ReadOctet(int value, int octet) => (byte)(value >> (octet * 8));
+    public static byte ReadOctet(short value, int octet) => (byte)(value >> (octet * 8));
+
     public static byte SizeOf(int elementId)
     {
         if (elementId > (1 << 24)) return 4;

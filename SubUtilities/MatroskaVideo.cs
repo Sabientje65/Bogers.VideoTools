@@ -288,8 +288,11 @@ public class MatroskaVideo
                 ConsumeUnknownElement(element);
             }
 
+            var allElements = new List<Element>();
             var segment = ReadElement();
-            ConsumeMasterElement(segment);
+            ConsumeMasterElement(segment, allElements);
+            
+            //30246672 -> 0x1CD8710
             
             // var body = ReadElement();
             // var bodySize = body.Size.Data;
@@ -377,7 +380,12 @@ public class MatroskaVideo
         }
     }
 
-    private static void ConsumeMasterElement(Element masterElement)
+    private static bool _fromstream = false;
+
+    private static void ConsumeMasterElement(
+        Element masterElement,
+        List<Element> encounteredElements
+    )
     {
         if (masterElement.Type != ElementType.Master) throw new ArgumentException("Expected element with type Master!");
         
@@ -386,8 +394,16 @@ public class MatroskaVideo
         while (size > 0)
         {
             var element = ReadElement();
+            encounteredElements.Add(element);
             size -= BitMask.SizeOf(element.Id);
             size -= BitMask.SizeOf(element.Size) + element.Size.Data;
+            
+            // unknown sized element, see 6.2
+            if (size < 0)
+            {
+                var x = size; // debugger
+                // problemo
+            }
 
             var matroskaElement = MatroskaElementRegistry.FindElement(element.Id);
             if (matroskaElement == null)
@@ -396,7 +412,7 @@ public class MatroskaVideo
                 continue;
             }
                 
-            Console.Write("Detected: " + matroskaElement.Path);
+            // Console.Write("Detected: " + matroskaElement.Path);
                 
             if (
                 element.Type == ElementType.ASCIIString ||
@@ -407,7 +423,7 @@ public class MatroskaVideo
                     ReadASCIIString(element) : 
                     ReadUTF8String(element);
                     
-                Console.WriteLine(docType);
+                // Console.WriteLine(docType);
                     
                 continue;
             }
@@ -415,15 +431,15 @@ public class MatroskaVideo
             if (element.Type == ElementType.UnsignedInteger)
             {
                 var value = ReadUInt(element);
-                Console.WriteLine(value);
+                // Console.WriteLine(value);
                     
                 continue;
             }
 
             if (element.Type == ElementType.Master)
             {
-                Console.WriteLine("Master");
-                ConsumeMasterElement(element);
+                // Console.WriteLine("Master");
+                ConsumeMasterElement(element, encounteredElements);
                 
                 continue;
             }
@@ -436,6 +452,7 @@ public class MatroskaVideo
     private static Element ReadElement()
     {
         var id = ReadElementId();
+        // Console.WriteLine(DebugUtilities.DumpHex(id));
         var width = ReadVInt();
         var type = ElementType.Unknown;
 
@@ -517,10 +534,8 @@ public class MatroskaVideo
 
     private static void ConsumeUnknownElement(Element element)
     {
-        // if (element.Type != ElementType.Unknown) throw new InvalidOperationException("Expected unknown element!");
-
-        if (_stream.CanSeek) _stream.Seek(element.Size.Data, SeekOrigin.Current);
-        else throw new InvalidOperationException("Expected a seekable stream!");
+        // simply move our stream forward
+        ReadBytes(element.Size.Data);
     } 
     
     /// <summary>
@@ -594,14 +609,50 @@ public class MatroskaVideo
         return value;
     }
 
+    private static byte[] _buffer = new byte[4096];
+    private static long _pos = -1;
+    private static long _total = 0;
+
     private static byte[] ReadBytes(long count)
     {
         if (count == 0) return Array.Empty<byte>();
         
-        var bytes = new byte[count];
+        if (_pos == -1)
+        {
+            _pos = 0;
+            _stream.Read(_buffer, 0, _buffer.Length);
+        }
+
         
+        var bytes = new byte[count];
+        var left = count;
+        
+        
+        while (left > 0)
+        {
+            var requested = Math.Min(_buffer.Length - _pos, left);
+            var startIndex = count - left;
+
+            // first: read from our buffer
+            Array.Copy(_buffer, _pos, bytes, startIndex, requested);
+
+            // rollover
+            _total += requested;
+            _pos += requested;
+            left -= requested;
+            if (_pos == _buffer.Length)
+            {
+                var read = _stream.Read(_buffer, 0, _buffer.Length);
+                
+                // shrink buffer for final read
+                if (read < _buffer.Length) _buffer = _buffer[..read];
+                _pos = 0;
+            }
+        }
+        
+
         // FIXME: Make use of last 32 bytes
-        _stream.Read(bytes, 0, (int)count);
+        // _stream.Read(bytes, 0, (int)count);
         return bytes;
     }
 }

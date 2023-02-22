@@ -1,35 +1,36 @@
 ﻿using System.CodeDom.Compiler;
-using System.Text.RegularExpressions;
-using System.Xml;
-using System.Xml.Linq;
-using System.Xml.XPath;
+using System.Xml.Serialization;
 
 namespace SubUtilities;
 
 public class MatroskaSchemaCodeGenerator
 {
 
-    private XDocument _schema { get; init; }
+    private EBMLSchemaRoot _root { get; init; }
     private IndentedTextWriter _writer { get; init; }
-    private XmlNamespaceManager _nsManager { get; init; }
 
-    
+
     // TODO: Take input stream/output stream
     public static void Run()
     {
-        using var source = File.OpenRead(@"E:\src\Bogers.VideoTools\SubUtilities\TestFiles\ebml_matroska.xml");
-        using var destination = File.Open(@"E:\src\Bogers.VideoTools\SubUtilities\MatroskaRegistry.Generated.cs", FileMode.Create);
-
-        var schema = XDocument.Load(source);
-        var nsManager = new XmlNamespaceManager(new NameTable());
-        nsManager.AddNamespace("default", schema.Root.GetDefaultNamespace().NamespaceName);
+        var destfile = @"E:\src\Bogers.VideoTools\SubUtilities\MatroskaRegistry.Generated.cs";
+        var destfileTmp = destfile + ".tmp";
         
+        using var source = File.OpenRead(@"E:\src\Bogers.VideoTools\SubUtilities\TestFiles\ebml_matroska.xml");
+        using var destination = File.Open(destfileTmp, FileMode.Create);
+
+        // var schema = XDocument.Load(source);
+        // var nsManager = new XmlNamespaceManager(new NameTable());
+        // nsManager.AddNamespace("default", schema.Root.GetDefaultNamespace().NamespaceName);
+
+        source.Position = 0;
+        var serializer = new XmlSerializer(typeof(EBMLSchemaRoot));
+        var root = (EBMLSchemaRoot)serializer.Deserialize(source);
 
         var instance = new MatroskaSchemaCodeGenerator
         {
-            _schema = schema,
-            _writer = new IndentedTextWriter(new StreamWriter(destination), "  "),
-            _nsManager = nsManager
+            _root = root,
+            _writer = new IndentedTextWriter(new StreamWriter(destination), "  ")
         };
 
         instance.DeclareHeader();
@@ -40,6 +41,9 @@ public class MatroskaSchemaCodeGenerator
         instance.DeclareElements();
         
         instance._writer.Flush();
+        destination.Close();
+        
+        File.Move(destfileTmp, destfile, true);
     }
 
     private void DeclareHeader()
@@ -85,14 +89,14 @@ public interface IMatroskaElement {
 
     private void DeclareElementRegistry()
     {
-        var elements = _schema.XPathSelectElements("//default:element", _nsManager);
+        var elements = _root.Elements;
         
         var declaration = $$"""
 public class MatroskaElementRegistry {
 
     // register known elements
     private static readonly IDictionary<long, IMatroskaElement> _elements = new Dictionary<long, IMatroskaElement> {
-        {{ String.Join(",\r\n        ", elements.Select( x => $"{{ {x.Attribute("id").Value}, new Matroska{x.Attribute("name").Value}() }}" )) }}
+        {{ String.Join(",\r\n        ", elements.Select( x => $"{{ {x.Id}, new Matroska{x.Name}() }}" )) }}
     };
 
     public static IMatroskaElement? FindElement(long id) => _elements.TryGetValue(id, out var element) ? element : null;
@@ -106,7 +110,7 @@ public class MatroskaElementRegistry {
 
     private void DeclareElements()
     {
-        using var elementEnumerator = _schema.XPathSelectElements("//default:element", _nsManager).GetEnumerator();
+        using var elementEnumerator = _root.Elements.GetEnumerator();
         elementEnumerator.MoveNext(); // consume first element
         DeclareElement(elementEnumerator.Current);
 
@@ -117,17 +121,17 @@ public class MatroskaElementRegistry {
         }
     }
 
-    private void DeclareElement(XElement element)
+    private void DeclareElement(EBMLSchemaElement element)
     {
         DeclareDocumentation(element);
 
-        var name = element.Attribute("name")?.Value;
-        var path = element.Attribute("path")?.Value;
-        var id = element.Attribute("id")?.Value;
-        var type = element.Attribute("type")?.Value;
-        var length = element.Attribute("length")?.Value;
-        var minOccurs = element.Attribute("minOccurs")?.Value;
-        var maxOccurs = element.Attribute("maxOccurs")?.Value;
+        var name = element.Name;
+        var path = element.Path;
+        var id = element.Id;
+        var type = element.Type;
+        var length = element.Length;
+        var minOccurs = element.MinOccurs;
+        var maxOccurs = element.MaxOccurs;
 
         var declaration = $$"""
 public class Matroska{{name}} : IMatroskaElement {
@@ -163,11 +167,9 @@ public class Matroska{{name}} : IMatroskaElement {
         return $"public {netType}? {name} => {value};";
     }
     
-    private void DeclareDocumentation(XElement element)
+    private void DeclareDocumentation(EBMLSchemaElement element)
     {
-        var documentation = element.Descendants()
-                .FirstOrDefault(x => x.Name.LocalName.Equals("documentation"))
-                ?.Value;
+        var documentation = element.Documentation?.Value;
         
         if (documentation == null) return;
 
@@ -178,5 +180,112 @@ public class Matroska{{name}} : IMatroskaElement {
 """;
         
         _writer.WriteLine(declaration);
+    }
+
+    // TODO: Generator?
+    [XmlRoot("EBMLSchema", Namespace = "urn:ietf:rfc:8794")]
+    public  class EBMLSchemaRoot
+    {
+        [XmlAttribute("docType")]
+        public string DocType { get; set; }
+        
+        [XmlAttribute("version")]
+        public int Version { get; set; }
+
+        [XmlAttribute("ebml")]
+        public string EBML { get; set; } // nullable
+        
+        [XmlElement("element")]
+        public List<EBMLSchemaElement> Elements { get; set; }
+    }
+
+    public  class EBMLSchemaElement
+    {
+        [XmlAttribute("name")]
+        public string Name { get; set; }
+
+        [XmlAttribute("path")]
+        public string Path { get; set; }
+
+        [XmlAttribute("id")]
+        public string Id { get; set; }
+        
+        [XmlAttribute("minOccurs")]
+        public string MinOccurs { get; set; } // nullable
+        
+        [XmlAttribute("maxOccurs")]
+        public string MaxOccurs { get; set; } // nullable
+        
+        [XmlAttribute("range")]
+        public string Range { get; set; }
+        
+        [XmlAttribute("length")]
+        public string Length { get; set; }
+        
+        [XmlAttribute("default")]
+        public string Default { get; set; }
+        
+        [XmlAttribute("type")]
+        public string Type { get; set; }
+        
+        [XmlAttribute("unkownsizeallowed")]
+        public bool UnknownSizeAllowed { get; set; }
+        
+        [XmlAttribute("recursive")]
+        public bool Recursive { get; set; }
+        
+        [XmlAttribute("recurring")]
+        public bool Recurring { get; set; }
+        
+        [XmlAttribute("minver")]
+        public string MinVer { get; set; } // nullable
+        
+        [XmlAttribute("maxver")]
+        public string MaxVer { get; set; } // nullable
+        
+        [XmlElement("documentation")]
+        public EBMLSchemaDocumentationElement Documentation { get; set; }
+        
+        [XmlElement("implementation_note")]
+        public EBMLSchemaImplementationNoteElement ImplementationNote { get; set; }
+        
+        [XmlElement("enum")]
+        public EBMLSchemaEnumElement[] Enum { get; set; }
+        
+        [XmlElement("extension")]
+        public EBMLSchemaExtensionElement Extension { get; set; }
+    }
+
+    public  class EBMLSchemaDocumentationElement
+    {
+        [XmlAttribute("lang")]
+        public string Lang { get; set; }
+        
+        [XmlAttribute("purpose")]
+        public string Purpose { get; set; }
+        
+        [XmlText]
+        public string Value { get; set; }
+    }
+
+    public  class EBMLSchemaImplementationNoteElement
+    {
+        [XmlAttribute("note_attribute")]
+        public string Note { get; set; }
+    }
+
+    public  class EBMLSchemaEnumElement
+    {
+        [XmlAttribute("label")]
+        public string Label { get; set; }
+        
+        [XmlAttribute("value")]
+        public string Value { get; set; }
+    }
+
+    public class EBMLSchemaExtensionElement
+    {
+        [XmlAttribute("type")]
+        public string Type { get; set; }
     }
 }

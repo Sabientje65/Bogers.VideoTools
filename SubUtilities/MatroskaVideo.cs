@@ -303,8 +303,6 @@ public class MatroskaVideo
         }
     }
 
-    private static bool _fromstream = false;
-
     private static void ConsumeMasterElement(
         Element masterElement,
         List<Element> encounteredElements

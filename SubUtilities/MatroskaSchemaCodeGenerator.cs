@@ -18,12 +18,7 @@ public class MatroskaSchemaCodeGenerator
         
         using var source = File.OpenRead(@"E:\src\Bogers.VideoTools\SubUtilities\TestFiles\ebml_matroska.xml");
         using var destination = File.Open(destfileTmp, FileMode.Create);
-
-        // var schema = XDocument.Load(source);
-        // var nsManager = new XmlNamespaceManager(new NameTable());
-        // nsManager.AddNamespace("default", schema.Root.GetDefaultNamespace().NamespaceName);
-
-        source.Position = 0;
+        
         var serializer = new XmlSerializer(typeof(EBMLSchemaRoot));
         var root = (EBMLSchemaRoot)serializer.Deserialize(source);
 

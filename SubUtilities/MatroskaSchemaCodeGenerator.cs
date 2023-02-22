@@ -1,4 +1,5 @@
 ﻿using System.CodeDom.Compiler;
+using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
@@ -34,6 +35,8 @@ public class MatroskaSchemaCodeGenerator
         instance.DeclareHeader();
         instance.DeclareUsings();
         instance.DeclareNamespace();
+        instance.DeclareElementInterface();
+        instance.DeclareElementRegistry();
         instance.DeclareElements();
         
         instance._writer.Flush();
@@ -53,12 +56,51 @@ public class MatroskaSchemaCodeGenerator
     private void DeclareUsings()
     {
         _writer.WriteLine("using System;");
+        _writer.WriteLine("using System.Collections.Generic;");
         _writer.WriteLine();
     }
     
     private void DeclareNamespace()
     {
         _writer.WriteLine("namespace SubUtilities.Generated;");
+        _writer.WriteLine();
+    }
+
+    private void DeclareElementInterface()
+    {
+        var declaration = $$"""
+public interface IMatroskaElement {
+    {{PropertyDeclaration("Path", "string")}}
+    {{PropertyDeclaration("Id", "long")}}
+    {{PropertyDeclaration("Type", "string")}}
+    {{PropertyDeclaration("Length", "string")}}
+    {{PropertyDeclaration("MinOccurs", "int")}}
+    {{PropertyDeclaration("MaxOccurs", "int")}}
+}
+""";
+        
+        _writer.WriteLine(declaration);
+        _writer.WriteLine();
+    }
+
+    private void DeclareElementRegistry()
+    {
+        var elements = _schema.XPathSelectElements("//default:element", _nsManager);
+        
+        var declaration = $$"""
+public class MatroskaElementRegistry {
+
+    // register known elements
+    private static readonly IDictionary<long, IMatroskaElement> _elements = new Dictionary<long, IMatroskaElement> {
+        {{ String.Join(",\r\n        ", elements.Select( x => $"{{ {x.Attribute("id").Value}, new Matroska{x.Attribute("name").Value}() }}" )) }}
+    };
+
+    public IMatroskaElement? FindElement(long id) => _elements.TryGetValue(id, out var element) ? element : null;
+
+}
+""";
+        
+        _writer.WriteLine(declaration);
         _writer.WriteLine();
     }
 
@@ -88,7 +130,7 @@ public class MatroskaSchemaCodeGenerator
         var maxOccurs = element.Attribute("maxOccurs")?.Value;
 
         var declaration = $$"""
-public class Matroska{{name}} {
+public class Matroska{{name}} : IMatroskaElement {
     {{PropertyDeclaration("Path", "string", path)}}
     {{PropertyDeclaration("Id", "long", id)}}
     {{PropertyDeclaration("Type", "string", type)}}
@@ -99,6 +141,14 @@ public class Matroska{{name}} {
 """;
         
         _writer.WriteLine(declaration);
+    }
+    
+    private string PropertyDeclaration(
+        string name,
+        string netType
+    )
+    {
+        return $"public {netType}? {name} {{ get; }}";
     }
 
     private string PropertyDeclaration(
@@ -115,13 +165,18 @@ public class Matroska{{name}} {
     
     private void DeclareDocumentation(XElement element)
     {
-        var documentation = element.XPathSelectElement("//default:documentation", _nsManager);
-        if (documentation == null) return;
+        var documentation = element.Descendants()
+                .FirstOrDefault(x => x.Name.LocalName.Equals("documentation"))
+                ?.Value;
         
-        _writer.WriteLine("""
+        if (documentation == null) return;
+
+        var declaration = $"""
 /// <summary>
-/// {0}
+/// { String.Join("\r\n/// ", documentation.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ) }
 /// </summary>
-""", documentation.Value);
+""";
+        
+        _writer.WriteLine(declaration);
     }
 }

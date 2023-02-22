@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Text;
 using System.Xml.Serialization;
+using SubUtilities.Generated;
 
 namespace SubUtilities;
 
@@ -138,82 +139,6 @@ public class MatroskaVideo
         };
     }
 
-    public static class MatroskaElementRegistry
-    {
-        private static bool _initialized = false;
-        private static IDictionary<long, MatroskaElement> _elementLookup;
-
-
-        public static void Init()
-        {
-            if (_initialized) return;
-            _initialized = true;
-            
-            _elementLookup = new Dictionary<long, MatroskaElement>();
-            using var fs = File.OpenRead(@"E:\src\Bogers.VideoTools\SubUtilities\TestFiles\ebml_matroska.xml");
-            
-            // using var xDoc = new XmlTextReader(@"E:\src\Bogers.VideoTools\SubUtilities\TestFiles\ebml_matroska.xml");
-            var serializer = new XmlSerializer(typeof(MatroskaDocument));
-
-            var doc = serializer.Deserialize(fs) as MatroskaDocument;
-            _elementLookup = doc.Elements.ToDictionary(x => Int64.Parse(x.Id[2..], NumberStyles.HexNumber), x => x);
-        }
-        
-        public static MatroskaElement? FindElement(ElementId id)
-        {
-            return _elementLookup.TryGetValue(id, out var el) ? el : null;
-
-            // return _elementLookup[id];
-        }
-    }
-
-    // codegenerator? -> MatroskaElementRegistry.Generated.cs
-    [XmlRoot("EBMLSchema", Namespace = "urn:ietf:rfc:8794")]
-    public class MatroskaDocument
-    {
-        [XmlAttribute("docType")]
-        public string DocType { get; set; }
-        
-        [XmlAttribute("version")]
-        public int Version { get; set; }
-        
-        // [XmlArray]
-        // [XmlArrayItem("element", typeof(MatroskaElement))]
-        
-        [XmlElement("element")]
-        public List<MatroskaElement> Elements { get; set; }
-    }
-
-    // [Serializable]
-    [DebuggerDisplay("{Path}")]
-    public class MatroskaElement
-    {
-        [XmlAttribute("name")]
-        public string Name { get; set; }
-
-        [XmlAttribute("path")]
-        public string Path { get; set; }
-
-        [XmlAttribute("id")]
-        public string Id { get; set; }
-        
-        [XmlAttribute("type")]
-        public string Type { get; set; }
-        
-        [XmlAttribute("range")]
-        public string Range { get; set; }
-        
-        [XmlAttribute("default")]
-        public string Default { get; set; }
-        
-        [XmlAttribute("minOccurs")]
-        public string MinOccurs { get; set; }
-        
-        [XmlAttribute("maxOccurs")]
-        public string MaxOccurs { get; set; }
-    }
-    
-
     public class MalformedDocumentException : Exception
     {
         public MalformedDocumentException(string message) : base(message)
@@ -232,8 +157,6 @@ public class MatroskaVideo
         // Parse Matroska file
         try
         {
-            MatroskaElementRegistry.Init();
-            
             // var file = @"E:\src\Bogers.VideoTools\SubUtilities\TestFiles\test5.mkv";
             var file = @"D:\Users\danny\Downloads\matroska_test_w1_1\test5.mkv"; // start off simple
             _stream = File.OpenRead(file);

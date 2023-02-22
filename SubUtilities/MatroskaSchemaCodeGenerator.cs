@@ -95,7 +95,7 @@ public class MatroskaElementRegistry {
         {{ String.Join(",\r\n        ", elements.Select( x => $"{{ {x.Attribute("id").Value}, new Matroska{x.Attribute("name").Value}() }}" )) }}
     };
 
-    public IMatroskaElement? FindElement(long id) => _elements.TryGetValue(id, out var element) ? element : null;
+    public static IMatroskaElement? FindElement(long id) => _elements.TryGetValue(id, out var element) ? element : null;
 
 }
 """;

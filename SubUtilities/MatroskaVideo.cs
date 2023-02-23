@@ -170,6 +170,7 @@ public class MatroskaVideo
             // if (!VerifyMasterId()) throw new Exception("Expected master elementId to be: 0x1A45DFA3");
             //
             // // assume A3 -> 1
+            var allElements = new List<Element>();
             var masterSize = masterElement.Size.Data;
 
             // general element layout:
@@ -180,6 +181,7 @@ public class MatroskaVideo
             while (masterSize > 0)
             {
                 var element = ReadElement();
+                allElements.Add(element);
                 masterSize -= BitMask.SizeOf(element.Id);
                 masterSize -= BitMask.SizeOf(element.Size) + element.Size.Data;
                 
@@ -211,7 +213,6 @@ public class MatroskaVideo
                 ConsumeUnknownElement(element);
             }
 
-            var allElements = new List<Element>();
             var segment = ReadElement();
             ConsumeMasterElement(segment, allElements);
             
@@ -310,14 +311,31 @@ public class MatroskaVideo
     {
         if (masterElement.Type != ElementType.Master) throw new ArgumentException("Expected element with type Master!");
         
-        var size = masterElement.Size.Data;
+        var size = (ulong)masterElement.Size.Data;
 
         while (size > 0)
         {
-            var element = ReadElement();
+            // FIXME: Incorrect width calculation? -> 0x1847 nextSibling should be 0x173f65
+            var element = ReadElement(masterElement);
             encounteredElements.Add(element);
-            size -= BitMask.SizeOf(element.Id);
-            size -= BitMask.SizeOf(element.Size) + element.Size.Data;
+            try
+            {
+                checked
+                {
+                    size -= (ulong)BitMask.SizeOf(element.Id);
+                    size -= (ulong)BitMask.SizeOf(element.Size) + (ulong)element.Size.Data;
+                }
+            }
+            catch
+            {
+                throw;
+            }
+
+            if (element.IsVoid)
+            {
+                ConsumeUnknownElement(element);
+                continue;
+            }
             
             // unknown sized element, see 6.2
             if (size < 0)
@@ -370,11 +388,14 @@ public class MatroskaVideo
 
     }
 
-    private static Element ReadElement()
+    private static Element ReadElement(Element parent = null)
     {
         var id = ReadElementId();
+        var position = _total - BitMask.SizeOf(id);
         // Console.WriteLine(DebugUtilities.DumpHex(id));
         var width = ReadVInt();
+        // if (position == 0x1847) width = new VInt(1517342 - 35);
+
         var type = ElementType.Unknown;
 
         if (
@@ -424,7 +445,7 @@ public class MatroskaVideo
             };
         }
 
-        return new Element(id, width, type);
+        return new Element(id, width, type, position, parent);
     }
     
     private static ElementId ReadElementId()
@@ -532,7 +553,7 @@ public class MatroskaVideo
 
     private static byte[] _buffer = new byte[4096];
     private static long _pos = -1;
-    private static long _total = 0;
+    public static long _total = 0;
 
     private static byte[] ReadBytes(long count)
     {
@@ -543,7 +564,6 @@ public class MatroskaVideo
             _pos = 0;
             _stream.Read(_buffer, 0, _buffer.Length);
         }
-
         
         var bytes = new byte[count];
         var left = count;
@@ -552,6 +572,7 @@ public class MatroskaVideo
         while (left > 0)
         {
             var requested = Math.Min(_buffer.Length - _pos, left);
+            // if( requested == 0 ) break;
             var startIndex = count - left;
 
             // first: read from our buffer
@@ -564,7 +585,7 @@ public class MatroskaVideo
             if (_pos == _buffer.Length)
             {
                 var read = _stream.Read(_buffer, 0, _buffer.Length);
-                
+
                 // shrink buffer for final read
                 if (read < _buffer.Length) _buffer = _buffer[..read];
                 _pos = 0;
@@ -602,7 +623,7 @@ static class DebugUtilities
         var size = BitMask.SizeOf(value);
         var result = "0x";
 
-        for (var i = size - 1; i >= 0; i--) result += Convert.ToString(BitMask.ReadOctet(value, i), toBase: 16).ToUpper();
+        for (var i = size - 1; i >= 0; i--) result += Convert.ToString(BitMask.ReadOctet(value, i), toBase: 16).PadLeft(2, '0').ToUpper();
 
         return result;
     }
@@ -715,14 +736,40 @@ public interface IElement<TSelf, TValue> where TSelf : IElement<TSelf, TValue>
         
 }
 
-public struct Element
+[DebuggerDisplay("{DebuggerView}")]
+public class Element
 {
-    public Element(ElementId id, VInt size, ElementType type)
+    public Element(
+        ElementId id, 
+        VInt size, 
+        ElementType type,
+        long position,
+        Element? parent = null
+    )
     {
         Id = id;
         Size = size;
         Type = type;
+
+        // all bits set to 1
+        var isUnknownSize = Enumerable.Range(0, 16)
+            .All(x => BitMask.IsSet(size.Data, x));
+
+        IsUnknownSize = isUnknownSize;
+        IsVoid = id == 0xEC;
+        Position = position;
+        MatroskaElement = MatroskaElementRegistry.FindElement(id);
+        Parent = parent;
+        NextSibling = position + Size.Data;
     }
+
+    public readonly Element? Parent;
+    
+    public readonly IMatroskaElement? MatroskaElement;
+    
+    public readonly long Position;
+
+    public readonly long NextSibling;
 
     public readonly ElementId Id;
     
@@ -731,6 +778,12 @@ public struct Element
     public readonly VInt Size;
 
     public readonly ElementType Type;
+
+    public readonly bool IsUnknownSize;
+
+    public readonly bool IsVoid;
+
+    public string DebuggerView => $"Position: {DebugUtilities.DumpHex(Position)}, Type: {MatroskaElement?.GetType()?.Name}, Next sibling: {DebugUtilities.DumpHex(NextSibling)}";
 }
 
 [DebuggerDisplay("{DebuggerView}")]

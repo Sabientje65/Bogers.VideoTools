@@ -24,7 +24,7 @@ public class ScanForSrtFilesAction : IAction
         var attrs = File.GetAttributes(_location);
         
         // assume file, check for existance?
-        if (!attrs.HasFlag(FileAttribute.Directory))
+        if (!attrs.HasFlag(FileAttributes.Directory))
         {
             await using var fs = File.OpenRead(_location);
             yield return await SrtFile.Parse(fs);
@@ -34,7 +34,9 @@ public class ScanForSrtFilesAction : IAction
         foreach (var srtFile in Directory.EnumerateFiles(_location, "*.srt"))
         {
             await using var fs = File.OpenRead(srtFile);
-            yield return await SrtFile.Parse(fs);
+            var file = await SrtFile.Parse(fs);
+            file.Name = srtFile;
+            yield return file;
         }
     }
 }

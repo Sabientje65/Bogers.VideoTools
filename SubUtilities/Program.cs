@@ -2,9 +2,9 @@
 using System.Text;
 using SubUtilities;
 
-MatroskaVideo.Test();
-
-return;
+// MatroskaVideo.Test();
+//
+// return;
 
 // sub-utils offset update -5s
 var rootCmd = new RootCommand();
@@ -28,22 +28,27 @@ var offsetArg = new Option<TimeSpan?>(
 // TODO: Add matcher for srt <> mkv (and other files?)
 var outputArg = new Option<string>(name: "--output");
 
+var fileMatcherArg = new Option<bool>(name: "--automatch", description: "Try to automatically match and rename files to match video files");
+
 var fileArg = new Option<FileInfo>(name: "--file");
 
 // create dto per command? subtitlesdto { [Argument("--offset")] TimeSpan offset, etc.. } ?
 subtitlesCmd.Add(offsetArg);
 subtitlesCmd.Add(fileArg);
+subtitlesCmd.Add(fileMatcherArg);
 
 subtitlesCmd.SetHandler(async ctx =>
 {
     var offset = ctx.ParseResult.GetValueForOption(offsetArg);
     var source = ctx.ParseResult.GetValueForOption(fileArg)?.FullName ?? Environment.CurrentDirectory;
     var output = ctx.ParseResult.GetValueForOption(outputArg) ?? Environment.CurrentDirectory;
+    var automatch = ctx.ParseResult.GetValueForOption(fileMatcherArg);
     
     var pipeline = new TransformationPipeline();
     
     pipeline.AddTransformation(new ScanForSrtFilesAction(source));
     if(offset.HasValue) pipeline.AddTransformation(new OffsetAction(offset.Value));
+    if (automatch) pipeline.AddTransformation(new AutoMatchAction());
     pipeline.AddTransformation(new WriteToFileAction(output));
 
     // await using var srtFileStream = file.Open(FileMode.Open, FileAccess.ReadWrite);

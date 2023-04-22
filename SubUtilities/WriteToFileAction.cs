@@ -22,7 +22,7 @@ public class WriteToFileAction : IAction
         for (var idx = 0; idx < context.SrtFiles.Count; idx++)
         {
             var file = GetOutputPath(context, context.SrtFiles[idx]);
-            await using var fs = File.Open(file, FileMode.Create, FileAccess.Read);
+            await using var fs = File.Open(file, FileMode.Create, FileAccess.Read | FileAccess.Write);
             await context.SrtFiles[idx].WriteToStream(fs);
         }
     }

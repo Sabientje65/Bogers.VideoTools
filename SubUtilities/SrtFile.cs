@@ -1,8 +1,10 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 
 namespace SubUtilities;
 
+[DebuggerDisplay("{Name}")]
 public class SrtFile
 {
     
@@ -70,8 +72,8 @@ public class SrtFile
             
             //todo: validate
             
-            var numberLine = await reader.ReadLineAsync();
-            var rangeLine = await reader.ReadLineAsync();
+            var numberLine = (await reader.ReadLineAsync()).Trim();
+            var rangeLine = (await reader.ReadLineAsync()).Trim();
             for (
                 var textLine = await reader.ReadLineAsync(); 
                 !String.IsNullOrEmpty(textLine); 

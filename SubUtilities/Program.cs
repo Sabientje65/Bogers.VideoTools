@@ -2,9 +2,9 @@
 using System.Text;
 using SubUtilities;
 
-// MatroskaVideo.Test();
-//
-// return;
+MatroskaVideo.Test();
+
+return;
 
 // sub-utils offset update -5s
 var rootCmd = new RootCommand();

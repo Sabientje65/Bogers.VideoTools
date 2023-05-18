@@ -184,8 +184,10 @@ public class MatroskaVideo
                 allElements.Add(element);
                 masterSize -= BitMask.SizeOf(element.Id);
                 masterSize -= BitMask.SizeOf(element.Size) + element.Size.Data;
-                
+
+
                 var name = WellKnownIds.Lookup[element.Id];
+                // var name = WellKnownIds.Lookup[element.Id];
                 Console.Write("Detected " + name + ": ");
                 
                 if (
@@ -315,33 +317,16 @@ public class MatroskaVideo
 
         while (size > 0)
         {
-            // FIXME: Incorrect width calculation? -> 0x1847 nextSibling should be 0x173f65
             var element = ReadElement(masterElement);
             encounteredElements.Add(element);
-            try
-            {
-                checked
-                {
-                    size -= (ulong)BitMask.SizeOf(element.Id);
-                    size -= (ulong)BitMask.SizeOf(element.Size) + (ulong)element.Size.Data;
-                }
-            }
-            catch
-            {
-                throw;
-            }
+            
+            var headerSize = (ulong)BitMask.SizeOf(element.Id) + (ulong)BitMask.SizeOf(element.Size) + (ulong)element.Size.Data;
+            size -= headerSize;
 
             if (element.IsVoid)
             {
                 ConsumeUnknownElement(element);
                 continue;
-            }
-            
-            // unknown sized element, see 6.2
-            if (size < 0)
-            {
-                var x = size; // debugger
-                // problemo
             }
 
             var matroskaElement = MatroskaElementRegistry.FindElement(element.Id);
@@ -350,8 +335,6 @@ public class MatroskaVideo
                 ConsumeUnknownElement(element);
                 continue;
             }
-                
-            // Console.Write("Detected: " + matroskaElement.Path);
                 
             if (
                 element.Type == ElementType.ASCIIString ||
@@ -362,24 +345,18 @@ public class MatroskaVideo
                     ReadASCIIString(element) : 
                     ReadUTF8String(element);
                     
-                // Console.WriteLine(docType);
-                    
                 continue;
             }
 
             if (element.Type == ElementType.UnsignedInteger)
             {
                 var value = ReadUInt(element);
-                // Console.WriteLine(value);
-                    
                 continue;
             }
 
             if (element.Type == ElementType.Master)
             {
-                // Console.WriteLine("Master");
                 ConsumeMasterElement(element, encounteredElements);
-                
                 continue;
             }
             
@@ -392,9 +369,7 @@ public class MatroskaVideo
     {
         var id = ReadElementId();
         var position = _total - BitMask.SizeOf(id);
-        // Console.WriteLine(DebugUtilities.DumpHex(id));
         var width = ReadVInt();
-        // if (position == 0x1847) width = new VInt(1517342 - 35);
 
         var type = ElementType.Unknown;
 
@@ -519,14 +494,14 @@ public class MatroskaVideo
         // step 2: strip our marker bit
         // first octet is still part of our value, dont discard!
         data = BitMask.Unset(data, 7 - additionalOctetCount);
-        if (additionalOctetCount == 0) return new VInt(data);
+        if (additionalOctetCount == 0) return new VInt(1, data);
 
         // step 3: append our additional octets
         var additionalOctets = ReadBytes(additionalOctetCount);
         data <<= additionalOctetCount * 8;
         data |= ToLong(additionalOctets);
 
-        return new VInt(data);
+        return new VInt(additionalOctetCount + 1, data);
     }
     
     // can we do this with generic math? -> needs to implement the proper operators
@@ -633,31 +608,59 @@ static class DebugUtilities
 
 static class BitMask
 {
-    public static bool IsSet<TValue>(TValue value, int bit)
+    /// <summary>
+    /// Check if a '1' bit is present at the given position
+    /// </summary>
+    /// <param name="value">Value</param>
+    /// <param name="position">Position to check</param>
+    /// <typeparam name="TValue">Numeric type</typeparam>
+    /// <returns>True when '1' bit is detected</returns>
+    public static bool IsSet<TValue>(TValue value, int position)
         where TValue : IBitwiseOperators<TValue, TValue, TValue>,  // can perform bitwise ops with self
                        IComparisonOperators<TValue, TValue, bool>, // can compare with self
                        IShiftOperators<TValue, int, TValue>,       // can shift self with int resulting in self
                        INumber<TValue>                             // contains 'one' and 'zero' statics
-    => (value & (TValue.One << bit)) != TValue.Zero;
+    => (value & (TValue.One << position)) != TValue.Zero;
     
-    public static bool IsUnset<TValue>(TValue value, int bit)
+    /// <summary>
+    /// Check if a '0' bit is present at the given position
+    /// </summary>
+    /// <param name="value">Value</param>
+    /// <param name="position">Position to check</param>
+    /// <typeparam name="TValue">Numeric type</typeparam>
+    /// <returns>True when '0' bit is detected</returns>
+    public static bool IsUnset<TValue>(TValue value, int position)
         where TValue : IBitwiseOperators<TValue, TValue, TValue>, 
                        IComparisonOperators<TValue, TValue, bool>,
                        IShiftOperators<TValue, int, TValue>,
                        INumber<TValue>
-    => (value & (TValue.One << bit)) == TValue.Zero;
+    => (value & (TValue.One << position)) == TValue.Zero;
 
-    public static TValue Set<TValue>(TValue value, int bit)
+    /// <summary>
+    /// Sets a '1' bit at the given position
+    /// </summary>
+    /// <param name="value">Base value</param>
+    /// <param name="position">Position to set bit at</param>
+    /// <typeparam name="TValue">Input/output type</typeparam>
+    /// <returns>Copy of <see cref="value"/> with bit at position <see cref="position"/> set to '1'</returns>
+    public static TValue Set<TValue>(TValue value, int position)
         where TValue : IBitwiseOperators<TValue, TValue, TValue>,
                        IShiftOperators<TValue, int, TValue>,
                        INumber<TValue>
-    => value | (TValue.One << bit);
+    => value | (TValue.One << position);
     
-    public static TValue Unset<TValue>(TValue value, int bit)
+    /// <summary>
+    /// Sets a '0' bit at the given position
+    /// </summary>
+    /// <param name="value">Base value</param>
+    /// <param name="position">Position to set bit at</param>
+    /// <typeparam name="TValue">Input/output type</typeparam>
+    /// <returns>Copy of <see cref="value"/> with bit at position <see cref="position"/> set to '0'</returns>
+    public static TValue Unset<TValue>(TValue value, int position)
         where TValue : IBitwiseOperators<TValue, TValue, TValue>,
                        IShiftOperators<TValue, int, TValue>,
                        INumber<TValue>
-    => value & ~(TValue.One << bit);
+    => value & ~(TValue.One << position);
 
 
 
@@ -675,11 +678,36 @@ static class BitMask
 
     // public static int PadLeft(int value, int bits) => (value << bits);
     // public static byte PadLeft(byte value, int bits) => (byte)(value << bits);
-    
+
+    /// <summary>
+    /// Read the byte octet at the given position
+    /// </summary>
+    /// <param name="value">64 bit integer</param>
+    /// <param name="octet">Octet position</param>
+    /// <returns>Octet at given position</returns>
     public static byte ReadOctet(long value, int octet) => (byte)(value >> (octet * 8));
+    
+    /// <summary>
+    /// Read the byte octet at the given position
+    /// </summary>
+    /// <param name="value">32 bit integer</param>
+    /// <param name="octet">Octet position</param>
+    /// <returns>Octet at given position</returns>
     public static byte ReadOctet(int value, int octet) => (byte)(value >> (octet * 8));
+    
+    /// <summary>
+    /// Read the byte octet at the given position
+    /// </summary>
+    /// <param name="value">16 bit integer</param>
+    /// <param name="octet">Octet position</param>
+    /// <returns>Octet at given position</returns>
     public static byte ReadOctet(short value, int octet) => (byte)(value >> (octet * 8));
 
+    /// <summary>
+    /// Calculate the size in bytes of the given value
+    /// </summary>
+    /// <param name="value">unsigned 64 bit integer</param>
+    /// <returns>Size in bytes</returns>
     public static byte SizeOf(ulong value)
     {
         if (value > (1L << 56)) return 8;
@@ -692,6 +720,11 @@ static class BitMask
         return 1;
     }
     
+    /// <summary>
+    /// Calculate the size in bytes of the given value
+    /// </summary>
+    /// <param name="value">64 bit integer</param>
+    /// <returns>Size in bytes</returns>
     public static byte SizeOf(long value)
     {
         if (value > (1L << 56)) return 8;
@@ -704,6 +737,11 @@ static class BitMask
         return 1;
     }
     
+    /// <summary>
+    /// Calculate the size in bytes of the given value
+    /// </summary>
+    /// <param name="value">32 bit integer</param>
+    /// <returns>Size in bytes</returns>
     public static byte SizeOf(int value)
     {
         if (value > (1 << 24)) return 4;
@@ -712,6 +750,11 @@ static class BitMask
         return 1;
     }
 
+    /// <summary>
+    /// Calculate the size in bytes of the given value
+    /// </summary>
+    /// <param name="value">unsigned 32 bit integer</param>
+    /// <returns>Size in bytes</returns>
     public static byte SizeOf(uint value)
     {
         if (value > (1 << 24)) return 4;
@@ -760,7 +803,7 @@ public class Element
         Position = position;
         MatroskaElement = MatroskaElementRegistry.FindElement(id);
         Parent = parent;
-        NextSibling = position + Size.Data;
+        NextSibling = position + Size.Data + BitMask.SizeOf(Id) + BitMask.SizeOf(Size);
     }
 
     public readonly Element? Parent;
@@ -808,7 +851,7 @@ public struct ElementId
     public static implicit operator long(ElementId e) => (long)e._value;
     public static implicit operator int(ElementId e) => (int)e._value;
 
-    public VInt AsVInt() => new VInt((int)_value);
+    public VInt AsVInt() => new VInt(BitMask.SizeOf(_value), (int)_value);
     
     
     [DebuggerHidden]
@@ -824,10 +867,10 @@ public struct ElementId
 public struct VInt
 {
     
-    public VInt(long data)
+    public VInt(int width, long data)
     {
         Data = data;
-        Width = BitMask.SizeOf(data);
+        Width = width;// BitMask.SizeOf(data); <-- yields incorrect results when marker is the only `1` bit in octet
         
         // total octets * octet size - total octets
         Marker = BitMask.Set( 0, Width * 8 - Width );

@@ -1,7 +1,7 @@
 ﻿using System.CodeDom.Compiler;
 using System.Xml.Serialization;
 
-namespace SubUtilities;
+namespace SubUtilities.Matroska;
 
 public class MatroskaSchemaCodeGenerator
 {
@@ -13,10 +13,10 @@ public class MatroskaSchemaCodeGenerator
     // TODO: Take input stream/output stream
     public static void Run()
     {
-        var destfile = @"E:\src\Bogers.VideoTools\SubUtilities\MatroskaRegistry.Generated.cs";
+        var destfile = @"E:\src\Bogers.VideoTools\SubUtilities\Matroska\MatroskaRegistry.Generated.cs";
         var destfileTmp = destfile + ".tmp";
         
-        using var source = File.OpenRead(@"E:\src\Bogers.VideoTools\SubUtilities\TestFiles\ebml_matroska.xml");
+        using var source = File.OpenRead(@"E:\src\Bogers.VideoTools\SubUtilities\Matroska\ebml_matroska.xml");
         using var destination = File.Open(destfileTmp, FileMode.Create);
         
         var serializer = new XmlSerializer(typeof(EBMLSchemaRoot));
@@ -96,6 +96,7 @@ public class MatroskaElementRegistry {
 
     public static IMatroskaElement? FindElement(long id) => _elements.TryGetValue(id, out var element) ? element : null;
 
+    {{ String.Join("\r\n    ", elements.Select( x => $"public static readonly IMatroskaElement Matroska{x.Name} = _elements[{x.Id}];" )) }}
 }
 """;
         

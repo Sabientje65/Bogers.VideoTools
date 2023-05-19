@@ -61,7 +61,7 @@ public class Element
     
     // todo: account for unknown sizes
     // see: https://www.rfc-editor.org/rfc/rfc8794.pdf#name-unknown-data-size
-    public readonly VInt Size;
+    public VInt Size;
 
     public readonly ElementType Type;
 

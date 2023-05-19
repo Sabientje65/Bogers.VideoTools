@@ -47,8 +47,9 @@ public class BufferElementContent : IElementContent
 {
     private readonly MemoryStream _buffer;
 
-    public BufferElementContent(long value) => _buffer = new MemoryStream(BitConverter.GetBytes(value));
-    public BufferElementContent(ulong value) => _buffer = new MemoryStream(BitConverter.GetBytes(value));
+    public BufferElementContent(long value) : this(ToBuffer(value)) {}
+
+    public BufferElementContent(ulong value) : this(ToBuffer((long)value)) {}
 
     public BufferElementContent(byte[] buffer) => _buffer = new MemoryStream(buffer);
     
@@ -60,6 +61,16 @@ public class BufferElementContent : IElementContent
     {
         _buffer.Seek(0, SeekOrigin.Begin);
         return _buffer;
+    }
+
+    private static byte[] ToBuffer(long value)
+    {
+        var vint = VInt.FromData(value);
+        var bytes = new byte[vint.Width];
+        
+        for (var octet = vint.Width; octet > 0; octet--) bytes[vint.Width - octet] = BitMask.ReadOctet(value, octet - 1);
+
+        return bytes;
     }
 }
 
@@ -218,7 +229,13 @@ public class MatroskaVideo
             
             // step 2: read our segment
             var segment = reader.ReadRootElement();
-            CreateSubtitleTrack(segment, "jp", "Custom Track");
+            var track = CreateSubtitleTrack(segment, "nld", "Custom Track");
+
+            foreach (var subSegment in srt.Segments)
+            {
+                CreateSubtitleBlock(segment, subSegment, track.TrackNumber);
+            }
+            
             // ConsumeMasterElement(segment);
 
             WriteDocument(new[] { masterElement, segment });
@@ -291,7 +308,7 @@ public class MatroskaVideo
             .Single(x => x.Id == MatroskaElementRegistry.MatroskaTrackNumber.Id);
     }
 
-    private static Element CreateSubtitleTrack(Element segment, string language, string name)
+    private static SubTitleTrack CreateSubtitleTrack(Element segment, string language, string name)
     {
         var tracksElement = segment.Children.First(
             x => x.Id == MatroskaElementRegistry.MatroskaTracks.Id    
@@ -334,21 +351,48 @@ public class MatroskaVideo
             nameElement
         });
         
-        // trackElement.SetParent(tracksElement);
+        trackElement.SetParent(tracksElement);
+        tracksElement.Size += trackElement.Size;
 
-        return trackElement;
+        return new SubTitleTrack(trackElement);
     }
     
-    public Element CreateSubtitleBlock(
-        SrtSegment segment, 
-        int track
+    private static void CreateSubtitleBlock(
+        Element segment,
+        SrtSegment srtSegment, 
+        ulong track
     )
     {
         // step 1: determine content 
         // https://matroska.sourceforge.net/technical/specs/index.html#TimecodeScale
         // todo: account for different timescales (see segment info -> timestamp scale)
 
-        var duration = (long)(segment.TimeRange.To - segment.TimeRange.From).TotalMilliseconds;
+        var clustersWithTimestamps = segment.Children
+            .Where(x => x.Id == MatroskaElementRegistry.MatroskaCluster.Id)
+            .Select(x =>
+            {
+                var ts = x.Children
+                    .SingleOrDefault(y => y.Id == MatroskaElementRegistry.MatroskaTimestamp.Id)?
+                    .ReadUIntContent();
+                
+                return new
+                {
+                    Cluster = x,
+                    Timestamp = ts.HasValue ? TimeSpan.FromMilliseconds(ts.Value) : (TimeSpan?)null
+                };
+            })
+            .Where(x => x.Timestamp.HasValue)
+            .ToArray();
+
+        var cluster = clustersWithTimestamps
+            .Where(x => x.Timestamp < srtSegment.TimeRange.From)
+            .OrderBy(x => x.Timestamp.Value)
+            .LastOrDefault();
+
+        if (cluster == null) return;
+
+        var duration = (long)(srtSegment.TimeRange.To - srtSegment.TimeRange.From).TotalMilliseconds;
+
         // var durationWidth = VInt.FromData(BitMask.SizeOf(duration));
 
         var blockDurationElement = ElementFactory.CreateElement(
@@ -356,17 +400,16 @@ public class MatroskaVideo
             new BufferElementContent(duration)
         );
 
-        var trackNumber = VInt.FromData(track);
+        var trackNumber = VInt.FromData((long)track);
         var relativeTimestamp = VInt.FromData(0);
         var flags = VInt.FromData(0);
-        var text = Encoding.UTF8.GetBytes(segment.Text);
 
         // https://matroska.sourceforge.net/technical/specs/index.html#block_structure
         var contentStream = new MemoryStream();
         contentStream.Write(trackNumber.AsBytes());
         contentStream.Write(relativeTimestamp.AsBytes());
         contentStream.Write(flags.AsBytes());
-        contentStream.Write(text);
+        contentStream.Write(Encoding.ASCII.GetBytes("Teeeeest"));
 
         var blockElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaBlock, contentStream);
 
@@ -376,7 +419,7 @@ public class MatroskaVideo
             blockDurationElement
         });
         
-        return blockGroupElement;
+        blockGroupElement.SetParent(cluster.Cluster);
     }
     
     private static SrtFile ReadSrt()
@@ -403,6 +446,12 @@ public class MatroskaVideo
             // process elements in order, parent -> child -> sibling
             foreach (var child in element.Children.Reverse()) leftover.Insert(0, child);
 
+            if (element.Id == MatroskaElementRegistry.MatroskaTrackEntry.Id)
+            {
+                var trackNumber = new SubTitleTrack(element).TrackNumber;
+                Console.WriteLine(trackNumber);
+            }
+            
             target.Write(element.Id.AsVInt().AsBytes());
             target.Write(element.Size.AsBytes());
             var contentReader = element.Type == ElementType.Master ? NoElementContent.Instance : element.Content;

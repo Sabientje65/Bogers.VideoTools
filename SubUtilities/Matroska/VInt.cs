@@ -67,12 +67,15 @@ public struct VInt
     /// <param name="data">VInt data</param>
     /// <returns>VInt representing giving data</returns>
     public static VInt FromData(long data) => new VInt(BitMask.SizeOf(data), data);
-    
+
     public readonly int Width;
         
     public readonly long Data;
 
     public readonly long Marker;
+
+    public static VInt operator +(VInt left, VInt right) => FromData(left.Data + right.Data);
+    public static VInt operator -(VInt left, VInt right) => FromData(left.Data - right.Data);
 
     // public static implicit operator int(VInt self) => self.Data;
     public readonly byte[] AsBytes()
@@ -82,14 +85,6 @@ public struct VInt
 
         for (var octet = Width; octet > 0; octet--) bytes[Width - octet] = BitMask.ReadOctet(value, octet - 1);
 
-        // bytes[0] = BitMask.ReadOctet(value, 0);
-        // if(Width > 1) bytes[1] = BitMask.ReadOctet(value, 1);
-        // if(Width > 2) bytes[2] = BitMask.ReadOctet(value, 2);
-        // if(Width > 3) bytes[3] = BitMask.ReadOctet(value, 3);
-        // if(Width > 4) bytes[4] = BitMask.ReadOctet(value, 4);
-        // if(Width > 5) bytes[5] = BitMask.ReadOctet(value, 5);
-        // if(Width > 6) bytes[6] = BitMask.ReadOctet(value, 6);
-        // if(Width > 7) bytes[7] = BitMask.ReadOctet(value, 7);
         return bytes;
     }
     

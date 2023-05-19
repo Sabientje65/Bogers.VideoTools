@@ -158,6 +158,13 @@ static class BitMask
         if (value > (1 << 8)) return 2;
         return 1;
     }
+
+    /// <summary>
+    /// Calculate the size in bytes of an individual element, will not inspect content
+    /// </summary>
+    /// <param name="element">EBML Element</param>
+    /// <returns>Size of the element</returns>
+    public static long SizeOf(Element element) => SizeOf(element.Id) + SizeOf(element.Size) + element.Size.Data;
     
     public static int SizeOf(ElementId elementId) => elementId.AsVInt().Width;
 

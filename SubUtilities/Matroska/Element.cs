@@ -9,12 +9,14 @@ namespace SubUtilities.Matroska;
 public class Element
 {
     private List<Element> _children;
+    private Element? _parent;
 
     public Element(
         ElementId id, 
         VInt size, 
         ElementType type,
         long position,
+        IContentReader contentReader,
         Element? parent = null
     )
     {
@@ -31,15 +33,17 @@ public class Element
         IsVoid = id == 0xEC;
         Position = position;
         MatroskaElement = MatroskaElementRegistry.FindElement(id);
-        Parent = parent;
         HeaderSize = BitMask.SizeOf(Size) + BitMask.SizeOf(Id);
         NextSibling = position + HeaderSize;
+        ContentReader = contentReader;
         _children = new List<Element>();
         
-        Parent?._children.Add(this);
+        SetParent(parent);
     }
 
-    public readonly Element? Parent;
+    public readonly IContentReader ContentReader;
+
+    public Element? Parent => _parent;
 
     public IReadOnlyList<Element> Children => _children;
 
@@ -64,4 +68,11 @@ public class Element
     public readonly bool IsVoid;
 
     public string DebuggerView => $"Position: {DebugUtilities.DumpHex(Position)}, Type: {MatroskaElement?.GetType()?.Name}, Next sibling: {DebugUtilities.DumpHex(NextSibling)}";
+
+    public void SetParent(Element? parent)
+    {
+        _parent?._children.Remove(this);
+        parent?._children.Add(this);
+        _parent = parent;
+    }
 }

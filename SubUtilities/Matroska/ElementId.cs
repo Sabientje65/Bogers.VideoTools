@@ -25,7 +25,7 @@ public struct ElementId
     public static implicit operator long(ElementId e) => (long)e._value;
     public static implicit operator int(ElementId e) => (int)e._value;
 
-    public VInt AsVInt() => new VInt(BitMask.SizeOf(_value), (int)_value);
+    public readonly VInt AsVInt() => new VInt(BitMask.SizeOf(_value), (int)_value);
     
     
     [DebuggerHidden]

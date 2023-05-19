@@ -18,6 +18,134 @@ namespace SubUtilities.Matroska;
 // by means of assigning a static byterange to at least 'stream'/'file' based datasources, we also remove the need
 // for having to keep track of new element positions when shuffling elements around (adding new elements etc)
 
+public interface IContentReader
+{
+    Stream ReadAsStream();
+}
+
+// public static class ContentReaderExtensions
+// {
+//     public static VInt ReadVInt(this IContentReader contentReader)
+//     {
+//         
+//     }
+//
+//     public static byte[] ReadBytes(this IContentReader contentReader)
+//     {
+//         
+//     }
+// }
+
+public class NoContentReader : IContentReader
+{
+    public static readonly NoContentReader Instance = new NoContentReader();
+    
+    public Stream ReadAsStream() => Stream.Null;
+}
+
+public class BufferContentReader : IContentReader
+{
+    private readonly MemoryStream _buffer;
+
+    public BufferContentReader(long value) => _buffer = new MemoryStream(BitConverter.GetBytes(value));
+    
+    public BufferContentReader(byte[] buffer) => _buffer = new MemoryStream(buffer);
+    
+    public BufferContentReader(MemoryStream buffer) => _buffer = buffer;
+    
+    public Stream ReadAsStream() => _buffer;
+}
+
+public class StreamChunkContentReader : IContentReader
+{
+    private readonly Stream _stream;
+    private readonly long _position;
+    private readonly long _length;
+    
+    public StreamChunkContentReader(Stream stream, long position, long length)
+    {
+        _stream = stream;
+        _position = position;
+        _length = length;
+    }
+
+    public Stream ReadAsStream() => new StreamChunk(_stream, _position, _length);
+
+    private class StreamChunk : Stream
+    {
+        private readonly Stream _stream;
+        private readonly long _length;
+        private readonly long _startPosition;
+        private long _position;
+        
+        public StreamChunk(
+            Stream stream,
+            long position,
+            long length
+        )
+        {
+            _stream = stream;
+            _length = length;
+            _startPosition = position;
+        }
+        
+        public override void Flush()
+        {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            PrepareStreamForRead();
+            
+            // prevent reading outside of assigned buffer 
+            var advanced = offset + count;
+            if (_position + advanced > _length)
+            {
+                count = (int)(_length - (_position + offset));
+            }
+
+            _position += count;
+            
+            return _stream.Read(buffer, offset, count);
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            if (origin != SeekOrigin.Begin) throw new NotImplementedException();
+            
+            _position = offset;
+            
+            return _stream.Seek(
+                _startPosition + offset,
+                origin
+            );
+        }
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override bool CanRead => true;
+        public override bool CanSeek => _stream.CanSeek;
+        public override bool CanWrite => false;
+        public override long Length => _length;
+
+        public override long Position
+        {
+            get => _position;
+            set => Seek(value, SeekOrigin.Begin);
+        }
+
+        private void PrepareStreamForRead()
+        {
+            // ensure our wrapped stream actually matches our internal position marker
+            var expectedPosition = _startPosition + _position;
+            if (_stream.Position == expectedPosition) return;
+
+            Seek(_position, SeekOrigin.Begin);
+        }
+    }
+}
 
 public class EBMLHeader
 {
@@ -166,7 +294,7 @@ public class MatroskaVideo
             var file = @"D:\Users\danny\Downloads\matroska_test_w1_1\test5.mkv"; // start off simple
             var srt = ReadSrt();
             
-            _stream = File.OpenRead(file);
+            _stream = new BufferedStream(File.OpenRead(file));
 
             // step 1: reading the header
             // an ebml document always starts with a header containing the following 4 bytes: 0x1A45DFA3
@@ -178,13 +306,15 @@ public class MatroskaVideo
             // step 2: read our segment
             var segment = ReadElement();
             ConsumeMasterElement(segment);
-            
+
+            WriteDocument(new[] { masterElement, segment });
+
             // step 3: determine the blocks over which our subs should span
-            
+
             // importanté, when writing our subs, we should also be bumping our seekhead elements
-            
+
             // step 4: write our output
-            
+
         }
         finally
         {
@@ -205,39 +335,61 @@ public class MatroskaVideo
         int track
     )
     {
-        var blockGroupElement = new Element(
-            new ElementId(MatroskaElementRegistry.MatroskaBlockGroup.Id!.Value),
-            new VInt(0, 0),
-            ElementType.Master,
-            0
-        );
+        // step 1: determine content 
+        // https://matroska.sourceforge.net/technical/specs/index.html#TimecodeScale
+        // todo: account for different timescales (see segment info -> timestamp scale)
 
-        // content is binary, layout:
-        // track number (vint)
-        // timestamp, relative (vint)
-        // flags (vint), 0
-        // frame (utf-8 encoded string)
+        var duration = (long)(segment.TimeRange.To - segment.TimeRange.From).TotalMilliseconds;
+        var durationWidth = VInt.FromData(BitMask.SizeOf(duration));
 
         var blockDurationElement = new Element(
-            new ElementId(MatroskaElementRegistry.MatroskaBlockGroup.Id!.Value),
-            new VInt(0, 0),
-            ElementType.Master,
+            new ElementId(MatroskaElementRegistry.MatroskaBlockDuration.Id!.Value),
+            durationWidth,
+            ElementType.UnsignedInteger,
             0,
-            blockGroupElement
+            new BufferContentReader(duration)
         );
-        
+
+        var trackNumber = VInt.FromData(track);
+        var relativeTimestamp = VInt.FromData(0);
+        var flags = VInt.FromData(0);
+        var text = Encoding.UTF8.GetBytes(segment.Text);
+
+        var blockSize = VInt.FromData(
+            trackNumber.Width + 
+            relativeTimestamp.Width + 
+            flags.Width + 
+            text.Length
+        );
+
+        // https://matroska.sourceforge.net/technical/specs/index.html#block_structure
+        var contentStream = new MemoryStream(new byte[blockSize.Data]);
+        contentStream.Write(trackNumber.AsBytes());
+        contentStream.Write(relativeTimestamp.AsBytes());
+        contentStream.Write(flags.AsBytes());
+        contentStream.Write(text);
+
         var blockElement = new Element(
             new ElementId(MatroskaElementRegistry.MatroskaBlock.Id!.Value),
-            new VInt(0, 0),
+            blockSize,
             ElementType.Binary,
-            0
+            0,
+            new BufferContentReader(contentStream)
         );
 
-        var content = new List<byte>();
+        var groupSize = BitMask.SizeOf(blockElement) + BitMask.SizeOf(blockDurationElement);
 
-        var trackVint = new VInt(BitMask.SizeOf(track), track);
+        var blockGroupElement = new Element(
+            new ElementId(MatroskaElementRegistry.MatroskaBlockGroup.Id!.Value),
+            VInt.FromData(groupSize),
+            ElementType.Master,
+            0,
+            NoContentReader.Instance
+        );
         
-        
+        blockElement.SetParent(blockGroupElement);
+        blockDurationElement.SetParent(blockGroupElement);
+
         return blockGroupElement;
     }
     
@@ -303,36 +455,36 @@ public class MatroskaVideo
 
     }
 
-    public void WriteDocument(IEnumerable<Element> elements)
+    private static void WriteDocument(IEnumerable<Element> elements)
     {
         using var target = File.Create(@"E:\src\Bogers.VideoTools\SubUtilities\TestFiles\test5-copy.mkv");
         
         // reset source to start
-        ResetStream();
+        // ResetStream();
 
-        var leftover = new Queue<Element>(elements);
+        var leftover = new List<Element>(elements);
 
         while (leftover.Count != 0)
         {
-            var element = leftover.Dequeue();
+            var element = leftover[0];
+            leftover.RemoveAt(0);
             
             // process elements in order, parent -> child -> sibling
-            foreach (var child in element.Children) leftover.Enqueue(child);
+            foreach (var child in element.Children.Reverse()) leftover.Insert(0, child);
 
-            // should track original position, read from source stream?
-            var elementContent = ReadBytes(
-                BitMask.SizeOf(element.Id) + BitMask.SizeOf(element.Size) + element.Size.Data
-            );
-            
-            target.Write(elementContent);
+            target.Write(element.Id.AsVInt().AsBytes());
+            target.Write(element.Size.AsBytes());
+            var contentReader = element.Type == ElementType.Master ? NoContentReader.Instance : element.ContentReader;
+            contentReader.ReadAsStream().CopyTo(target);
         }
     }
 
     private static Element ReadElement(Element parent = null)
     {
         var id = ReadElementId();
-        var position = _total - BitMask.SizeOf(id);
+        var position = _stream.Position - BitMask.SizeOf(id);
         var width = ReadVInt();
+        var contentPosition = position + BitMask.SizeOf(id) + BitMask.SizeOf(width);
 
         var type = ElementType.Unknown;
 
@@ -383,7 +535,14 @@ public class MatroskaVideo
             };
         }
 
-        return new Element(id, width, type, position, parent);
+        return new Element(
+            id, 
+            width,
+            type,
+            position,
+            new StreamChunkContentReader(_stream, contentPosition, width.Data),
+            parent
+        );
     }
     
     private static ElementId ReadElementId()
@@ -416,8 +575,8 @@ public class MatroskaVideo
     {
         // simply move our stream forward
         ReadBytes(element.Size.Data);
-    } 
-    
+    }
+
     /// <summary>
     /// Read an integer of variable length, anatomy consists of: width, marker bit, value
     ///
@@ -489,61 +648,14 @@ public class MatroskaVideo
         return value;
     }
 
-    private static byte[] _buffer = new byte[4096];
-    private static long _pos = -1;
-    public static long _total = 0;
-
-    private static void ResetStream()
-    {
-        _stream.Seek(0, SeekOrigin.Begin);
-        _pos = -1;
-        _total = 0;
-        _buffer = new byte[4096];
-    }
-    
     private static byte[] ReadBytes(long count)
     {
-        if (count == 0) return Array.Empty<byte>();
-        
-        if (_pos == -1)
-        {
-            _pos = 0;
-            _stream.Read(_buffer, 0, _buffer.Length);
-        }
-        
         var bytes = new byte[count];
-        var left = count;
-        
-        
-        while (left > 0)
-        {
-            var requested = Math.Min(_buffer.Length - _pos, left);
-            // if( requested == 0 ) break;
-            var startIndex = count - left;
-
-            // first: read from our buffer
-            Array.Copy(_buffer, _pos, bytes, startIndex, requested);
-
-            // rollover
-            _total += requested;
-            _pos += requested;
-            left -= requested;
-            if (_pos == _buffer.Length)
-            {
-                var read = _stream.Read(_buffer, 0, _buffer.Length);
-
-                // shrink buffer for final read
-                if (read < _buffer.Length) _buffer = _buffer[..read];
-                _pos = 0;
-            }
-        }
-        
-
-        // FIXME: Make use of last 32 bytes
-        // _stream.Read(bytes, 0, (int)count);
+        _ = _stream.Read(bytes, 0, (int)count);
         return bytes;
     }
 }
+
 
 // TODO: Investigate 'Length' type as a bridge between different numeric types?
 

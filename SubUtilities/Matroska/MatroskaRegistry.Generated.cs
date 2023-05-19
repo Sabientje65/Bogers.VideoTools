@@ -5,13 +5,14 @@
 
 using System;
 using System.Collections.Generic;
+using SubUtilities.Matroska;
 
 namespace SubUtilities.Generated;
 
 public interface IMatroskaElement {
     public string? Path { get; }
     public long? Id { get; }
-    public string? Type { get; }
+    public ElementType Type { get; }
     public string? Length { get; }
     public int? MinOccurs { get; }
     public int? MaxOccurs { get; }
@@ -552,7 +553,7 @@ public class MatroskaElementRegistry {
 public class MatroskaEBMLMaxIDLength : IMatroskaElement {
     public string? Path => @"\EBML\EBMLMaxIDLength";
     public long? Id => 0x42F2;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -561,7 +562,7 @@ public class MatroskaEBMLMaxIDLength : IMatroskaElement {
 public class MatroskaEBMLMaxSizeLength : IMatroskaElement {
     public string? Path => @"\EBML\EBMLMaxSizeLength";
     public long? Id => 0x42F3;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -573,7 +574,7 @@ public class MatroskaEBMLMaxSizeLength : IMatroskaElement {
 public class MatroskaSegment : IMatroskaElement {
     public string? Path => @"\Segment";
     public long? Id => 0x18538067;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -585,7 +586,7 @@ public class MatroskaSegment : IMatroskaElement {
 public class MatroskaSeekHead : IMatroskaElement {
     public string? Path => @"\Segment\SeekHead";
     public long? Id => 0x114D9B74;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 2;
@@ -597,7 +598,7 @@ public class MatroskaSeekHead : IMatroskaElement {
 public class MatroskaSeek : IMatroskaElement {
     public string? Path => @"\Segment\SeekHead\Seek";
     public long? Id => 0x4DBB;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => null;
@@ -609,7 +610,7 @@ public class MatroskaSeek : IMatroskaElement {
 public class MatroskaSeekID : IMatroskaElement {
     public string? Path => @"\Segment\SeekHead\Seek\SeekID";
     public long? Id => 0x53AB;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => @"<= 4";
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -621,7 +622,7 @@ public class MatroskaSeekID : IMatroskaElement {
 public class MatroskaSeekPosition : IMatroskaElement {
     public string? Path => @"\Segment\SeekHead\Seek\SeekPosition";
     public long? Id => 0x53AC;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -633,7 +634,7 @@ public class MatroskaSeekPosition : IMatroskaElement {
 public class MatroskaInfo : IMatroskaElement {
     public string? Path => @"\Segment\Info";
     public long? Id => 0x1549A966;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -645,7 +646,7 @@ public class MatroskaInfo : IMatroskaElement {
 public class MatroskaSegmentUUID : IMatroskaElement {
     public string? Path => @"\Segment\Info\SegmentUUID";
     public long? Id => 0x73A4;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => @"16";
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -657,7 +658,7 @@ public class MatroskaSegmentUUID : IMatroskaElement {
 public class MatroskaSegmentFilename : IMatroskaElement {
     public string? Path => @"\Segment\Info\SegmentFilename";
     public long? Id => 0x7384;
-    public string? Type => @"utf-8";
+    public ElementType Type => ElementType.Utf8String;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -669,7 +670,7 @@ public class MatroskaSegmentFilename : IMatroskaElement {
 public class MatroskaPrevUUID : IMatroskaElement {
     public string? Path => @"\Segment\Info\PrevUUID";
     public long? Id => 0x3CB923;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => @"16";
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -681,7 +682,7 @@ public class MatroskaPrevUUID : IMatroskaElement {
 public class MatroskaPrevFilename : IMatroskaElement {
     public string? Path => @"\Segment\Info\PrevFilename";
     public long? Id => 0x3C83AB;
-    public string? Type => @"utf-8";
+    public ElementType Type => ElementType.Utf8String;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -693,7 +694,7 @@ public class MatroskaPrevFilename : IMatroskaElement {
 public class MatroskaNextUUID : IMatroskaElement {
     public string? Path => @"\Segment\Info\NextUUID";
     public long? Id => 0x3EB923;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => @"16";
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -705,7 +706,7 @@ public class MatroskaNextUUID : IMatroskaElement {
 public class MatroskaNextFilename : IMatroskaElement {
     public string? Path => @"\Segment\Info\NextFilename";
     public long? Id => 0x3E83BB;
-    public string? Type => @"utf-8";
+    public ElementType Type => ElementType.Utf8String;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -717,7 +718,7 @@ public class MatroskaNextFilename : IMatroskaElement {
 public class MatroskaSegmentFamily : IMatroskaElement {
     public string? Path => @"\Segment\Info\SegmentFamily";
     public long? Id => 0x4444;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => @"16";
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -729,7 +730,7 @@ public class MatroskaSegmentFamily : IMatroskaElement {
 public class MatroskaChapterTranslate : IMatroskaElement {
     public string? Path => @"\Segment\Info\ChapterTranslate";
     public long? Id => 0x6924;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -742,7 +743,7 @@ public class MatroskaChapterTranslate : IMatroskaElement {
 public class MatroskaChapterTranslateID : IMatroskaElement {
     public string? Path => @"\Segment\Info\ChapterTranslate\ChapterTranslateID";
     public long? Id => 0x69A5;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -754,7 +755,7 @@ public class MatroskaChapterTranslateID : IMatroskaElement {
 public class MatroskaChapterTranslateCodec : IMatroskaElement {
     public string? Path => @"\Segment\Info\ChapterTranslate\ChapterTranslateCodec";
     public long? Id => 0x69BF;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -766,7 +767,7 @@ public class MatroskaChapterTranslateCodec : IMatroskaElement {
 public class MatroskaChapterTranslateEditionUID : IMatroskaElement {
     public string? Path => @"\Segment\Info\ChapterTranslate\ChapterTranslateEditionUID";
     public long? Id => 0x69FC;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -778,7 +779,7 @@ public class MatroskaChapterTranslateEditionUID : IMatroskaElement {
 public class MatroskaTimestampScale : IMatroskaElement {
     public string? Path => @"\Segment\Info\TimestampScale";
     public long? Id => 0x2AD7B1;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -790,7 +791,7 @@ public class MatroskaTimestampScale : IMatroskaElement {
 public class MatroskaDuration : IMatroskaElement {
     public string? Path => @"\Segment\Info\Duration";
     public long? Id => 0x4489;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -802,7 +803,7 @@ public class MatroskaDuration : IMatroskaElement {
 public class MatroskaDateUTC : IMatroskaElement {
     public string? Path => @"\Segment\Info\DateUTC";
     public long? Id => 0x4461;
-    public string? Type => @"date";
+    public ElementType Type => ElementType.Date;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -814,7 +815,7 @@ public class MatroskaDateUTC : IMatroskaElement {
 public class MatroskaTitle : IMatroskaElement {
     public string? Path => @"\Segment\Info\Title";
     public long? Id => 0x7BA9;
-    public string? Type => @"utf-8";
+    public ElementType Type => ElementType.Utf8String;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -826,7 +827,7 @@ public class MatroskaTitle : IMatroskaElement {
 public class MatroskaMuxingApp : IMatroskaElement {
     public string? Path => @"\Segment\Info\MuxingApp";
     public long? Id => 0x4D80;
-    public string? Type => @"utf-8";
+    public ElementType Type => ElementType.Utf8String;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -838,7 +839,7 @@ public class MatroskaMuxingApp : IMatroskaElement {
 public class MatroskaWritingApp : IMatroskaElement {
     public string? Path => @"\Segment\Info\WritingApp";
     public long? Id => 0x5741;
-    public string? Type => @"utf-8";
+    public ElementType Type => ElementType.Utf8String;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -850,7 +851,7 @@ public class MatroskaWritingApp : IMatroskaElement {
 public class MatroskaCluster : IMatroskaElement {
     public string? Path => @"\Segment\Cluster";
     public long? Id => 0x1F43B675;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -862,7 +863,7 @@ public class MatroskaCluster : IMatroskaElement {
 public class MatroskaTimestamp : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\Timestamp";
     public long? Id => 0xE7;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -875,7 +876,7 @@ public class MatroskaTimestamp : IMatroskaElement {
 public class MatroskaSilentTracks : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\SilentTracks";
     public long? Id => 0x5854;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -888,7 +889,7 @@ public class MatroskaSilentTracks : IMatroskaElement {
 public class MatroskaSilentTrackNumber : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\SilentTracks\SilentTrackNumber";
     public long? Id => 0x58D7;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -901,7 +902,7 @@ public class MatroskaSilentTrackNumber : IMatroskaElement {
 public class MatroskaPosition : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\Position";
     public long? Id => 0xA7;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -913,7 +914,7 @@ public class MatroskaPosition : IMatroskaElement {
 public class MatroskaPrevSize : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\PrevSize";
     public long? Id => 0xAB;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -926,7 +927,7 @@ public class MatroskaPrevSize : IMatroskaElement {
 public class MatroskaSimpleBlock : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\SimpleBlock";
     public long? Id => 0xA3;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -938,7 +939,7 @@ public class MatroskaSimpleBlock : IMatroskaElement {
 public class MatroskaBlockGroup : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup";
     public long? Id => 0xA0;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -951,7 +952,7 @@ public class MatroskaBlockGroup : IMatroskaElement {
 public class MatroskaBlock : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\Block";
     public long? Id => 0xA1;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -963,7 +964,7 @@ public class MatroskaBlock : IMatroskaElement {
 public class MatroskaBlockVirtual : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\BlockVirtual";
     public long? Id => 0xA2;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -976,7 +977,7 @@ public class MatroskaBlockVirtual : IMatroskaElement {
 public class MatroskaBlockAdditions : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\BlockAdditions";
     public long? Id => 0x75A1;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -988,7 +989,7 @@ public class MatroskaBlockAdditions : IMatroskaElement {
 public class MatroskaBlockMore : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\BlockAdditions\BlockMore";
     public long? Id => 0xA6;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => null;
@@ -1000,7 +1001,7 @@ public class MatroskaBlockMore : IMatroskaElement {
 public class MatroskaBlockAdditional : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\BlockAdditions\BlockMore\BlockAdditional";
     public long? Id => 0xA5;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1014,7 +1015,7 @@ public class MatroskaBlockAdditional : IMatroskaElement {
 public class MatroskaBlockAddID : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\BlockAdditions\BlockMore\BlockAddID";
     public long? Id => 0xEE;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1028,7 +1029,7 @@ public class MatroskaBlockAddID : IMatroskaElement {
 public class MatroskaBlockDuration : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\BlockDuration";
     public long? Id => 0x9B;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1041,7 +1042,7 @@ public class MatroskaBlockDuration : IMatroskaElement {
 public class MatroskaReferencePriority : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\ReferencePriority";
     public long? Id => 0xFA;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1058,7 +1059,7 @@ public class MatroskaReferencePriority : IMatroskaElement {
 public class MatroskaReferenceBlock : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\ReferenceBlock";
     public long? Id => 0xFB;
-    public string? Type => @"integer";
+    public ElementType Type => ElementType.SignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -1070,7 +1071,7 @@ public class MatroskaReferenceBlock : IMatroskaElement {
 public class MatroskaReferenceVirtual : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\ReferenceVirtual";
     public long? Id => 0xFD;
-    public string? Type => @"integer";
+    public ElementType Type => ElementType.SignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1083,7 +1084,7 @@ public class MatroskaReferenceVirtual : IMatroskaElement {
 public class MatroskaCodecState : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\CodecState";
     public long? Id => 0xA4;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1097,7 +1098,7 @@ public class MatroskaCodecState : IMatroskaElement {
 public class MatroskaDiscardPadding : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\DiscardPadding";
     public long? Id => 0x75A2;
-    public string? Type => @"integer";
+    public ElementType Type => ElementType.SignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1109,7 +1110,7 @@ public class MatroskaDiscardPadding : IMatroskaElement {
 public class MatroskaSlices : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\Slices";
     public long? Id => 0x8E;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1122,7 +1123,7 @@ public class MatroskaSlices : IMatroskaElement {
 public class MatroskaTimeSlice : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\Slices\TimeSlice";
     public long? Id => 0xE8;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -1135,7 +1136,7 @@ public class MatroskaTimeSlice : IMatroskaElement {
 public class MatroskaLaceNumber : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\Slices\TimeSlice\LaceNumber";
     public long? Id => 0xCC;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1148,7 +1149,7 @@ public class MatroskaLaceNumber : IMatroskaElement {
 public class MatroskaFrameNumber : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\Slices\TimeSlice\FrameNumber";
     public long? Id => 0xCD;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1160,7 +1161,7 @@ public class MatroskaFrameNumber : IMatroskaElement {
 public class MatroskaBlockAdditionID : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\Slices\TimeSlice\BlockAdditionID";
     public long? Id => 0xCB;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1172,7 +1173,7 @@ public class MatroskaBlockAdditionID : IMatroskaElement {
 public class MatroskaDelay : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\Slices\TimeSlice\Delay";
     public long? Id => 0xCE;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1184,7 +1185,7 @@ public class MatroskaDelay : IMatroskaElement {
 public class MatroskaSliceDuration : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\Slices\TimeSlice\SliceDuration";
     public long? Id => 0xCF;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1196,7 +1197,7 @@ public class MatroskaSliceDuration : IMatroskaElement {
 public class MatroskaReferenceFrame : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\ReferenceFrame";
     public long? Id => 0xC8;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1208,7 +1209,7 @@ public class MatroskaReferenceFrame : IMatroskaElement {
 public class MatroskaReferenceOffset : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\ReferenceFrame\ReferenceOffset";
     public long? Id => 0xC9;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1220,7 +1221,7 @@ public class MatroskaReferenceOffset : IMatroskaElement {
 public class MatroskaReferenceTimestamp : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\BlockGroup\ReferenceFrame\ReferenceTimestamp";
     public long? Id => 0xCA;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1233,7 +1234,7 @@ public class MatroskaReferenceTimestamp : IMatroskaElement {
 public class MatroskaEncryptedBlock : IMatroskaElement {
     public string? Path => @"\Segment\Cluster\EncryptedBlock";
     public long? Id => 0xAF;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -1245,7 +1246,7 @@ public class MatroskaEncryptedBlock : IMatroskaElement {
 public class MatroskaTracks : IMatroskaElement {
     public string? Path => @"\Segment\Tracks";
     public long? Id => 0x1654AE6B;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1257,7 +1258,7 @@ public class MatroskaTracks : IMatroskaElement {
 public class MatroskaTrackEntry : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry";
     public long? Id => 0xAE;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => null;
@@ -1269,7 +1270,7 @@ public class MatroskaTrackEntry : IMatroskaElement {
 public class MatroskaTrackNumber : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackNumber";
     public long? Id => 0xD7;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1281,7 +1282,7 @@ public class MatroskaTrackNumber : IMatroskaElement {
 public class MatroskaTrackUID : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackUID";
     public long? Id => 0x73C5;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1294,7 +1295,7 @@ public class MatroskaTrackUID : IMatroskaElement {
 public class MatroskaTrackType : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackType";
     public long? Id => 0x83;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1306,7 +1307,7 @@ public class MatroskaTrackType : IMatroskaElement {
 public class MatroskaFlagEnabled : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\FlagEnabled";
     public long? Id => 0xB9;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1318,7 +1319,7 @@ public class MatroskaFlagEnabled : IMatroskaElement {
 public class MatroskaFlagDefault : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\FlagDefault";
     public long? Id => 0x88;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1333,7 +1334,7 @@ public class MatroskaFlagDefault : IMatroskaElement {
 public class MatroskaFlagForced : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\FlagForced";
     public long? Id => 0x55AA;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1345,7 +1346,7 @@ public class MatroskaFlagForced : IMatroskaElement {
 public class MatroskaFlagHearingImpaired : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\FlagHearingImpaired";
     public long? Id => 0x55AB;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1357,7 +1358,7 @@ public class MatroskaFlagHearingImpaired : IMatroskaElement {
 public class MatroskaFlagVisualImpaired : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\FlagVisualImpaired";
     public long? Id => 0x55AC;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1369,7 +1370,7 @@ public class MatroskaFlagVisualImpaired : IMatroskaElement {
 public class MatroskaFlagTextDescriptions : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\FlagTextDescriptions";
     public long? Id => 0x55AD;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1381,7 +1382,7 @@ public class MatroskaFlagTextDescriptions : IMatroskaElement {
 public class MatroskaFlagOriginal : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\FlagOriginal";
     public long? Id => 0x55AE;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1393,7 +1394,7 @@ public class MatroskaFlagOriginal : IMatroskaElement {
 public class MatroskaFlagCommentary : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\FlagCommentary";
     public long? Id => 0x55AF;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1405,7 +1406,7 @@ public class MatroskaFlagCommentary : IMatroskaElement {
 public class MatroskaFlagLacing : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\FlagLacing";
     public long? Id => 0x9C;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1418,7 +1419,7 @@ public class MatroskaFlagLacing : IMatroskaElement {
 public class MatroskaMinCache : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\MinCache";
     public long? Id => 0x6DE7;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1431,7 +1432,7 @@ public class MatroskaMinCache : IMatroskaElement {
 public class MatroskaMaxCache : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\MaxCache";
     public long? Id => 0x6DF8;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1444,7 +1445,7 @@ public class MatroskaMaxCache : IMatroskaElement {
 public class MatroskaDefaultDuration : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\DefaultDuration";
     public long? Id => 0x23E383;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1457,7 +1458,7 @@ public class MatroskaDefaultDuration : IMatroskaElement {
 public class MatroskaDefaultDecodedFieldDuration : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\DefaultDecodedFieldDuration";
     public long? Id => 0x234E7A;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1470,7 +1471,7 @@ public class MatroskaDefaultDecodedFieldDuration : IMatroskaElement {
 public class MatroskaTrackTimestampScale : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackTimestampScale";
     public long? Id => 0x23314F;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1483,7 +1484,7 @@ public class MatroskaTrackTimestampScale : IMatroskaElement {
 public class MatroskaTrackOffset : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackOffset";
     public long? Id => 0x537F;
-    public string? Type => @"integer";
+    public ElementType Type => ElementType.SignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1496,7 +1497,7 @@ public class MatroskaTrackOffset : IMatroskaElement {
 public class MatroskaMaxBlockAdditionID : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\MaxBlockAdditionID";
     public long? Id => 0x55EE;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1510,7 +1511,7 @@ public class MatroskaMaxBlockAdditionID : IMatroskaElement {
 public class MatroskaBlockAdditionMapping : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\BlockAdditionMapping";
     public long? Id => 0x41E4;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -1523,7 +1524,7 @@ public class MatroskaBlockAdditionMapping : IMatroskaElement {
 public class MatroskaBlockAddIDValue : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\BlockAdditionMapping\BlockAddIDValue";
     public long? Id => 0x41F0;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1536,7 +1537,7 @@ public class MatroskaBlockAddIDValue : IMatroskaElement {
 public class MatroskaBlockAddIDName : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\BlockAdditionMapping\BlockAddIDName";
     public long? Id => 0x41A4;
-    public string? Type => @"string";
+    public ElementType Type => ElementType.ASCIIString;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1549,7 +1550,7 @@ public class MatroskaBlockAddIDName : IMatroskaElement {
 public class MatroskaBlockAddIDType : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\BlockAdditionMapping\BlockAddIDType";
     public long? Id => 0x41E7;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1562,7 +1563,7 @@ public class MatroskaBlockAddIDType : IMatroskaElement {
 public class MatroskaBlockAddIDExtraData : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\BlockAdditionMapping\BlockAddIDExtraData";
     public long? Id => 0x41ED;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1574,7 +1575,7 @@ public class MatroskaBlockAddIDExtraData : IMatroskaElement {
 public class MatroskaName : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Name";
     public long? Id => 0x536E;
-    public string? Type => @"utf-8";
+    public ElementType Type => ElementType.Utf8String;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1588,7 +1589,7 @@ public class MatroskaName : IMatroskaElement {
 public class MatroskaLanguage : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Language";
     public long? Id => 0x22B59C;
-    public string? Type => @"string";
+    public ElementType Type => ElementType.ASCIIString;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1602,7 +1603,7 @@ public class MatroskaLanguage : IMatroskaElement {
 public class MatroskaLanguageBCP47 : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\LanguageBCP47";
     public long? Id => 0x22B59D;
-    public string? Type => @"string";
+    public ElementType Type => ElementType.ASCIIString;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1615,7 +1616,7 @@ public class MatroskaLanguageBCP47 : IMatroskaElement {
 public class MatroskaCodecID : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\CodecID";
     public long? Id => 0x86;
-    public string? Type => @"string";
+    public ElementType Type => ElementType.ASCIIString;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1627,7 +1628,7 @@ public class MatroskaCodecID : IMatroskaElement {
 public class MatroskaCodecPrivate : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\CodecPrivate";
     public long? Id => 0x63A2;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1639,7 +1640,7 @@ public class MatroskaCodecPrivate : IMatroskaElement {
 public class MatroskaCodecName : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\CodecName";
     public long? Id => 0x258688;
-    public string? Type => @"utf-8";
+    public ElementType Type => ElementType.Utf8String;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1651,7 +1652,7 @@ public class MatroskaCodecName : IMatroskaElement {
 public class MatroskaAttachmentLink : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\AttachmentLink";
     public long? Id => 0x7446;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1663,7 +1664,7 @@ public class MatroskaAttachmentLink : IMatroskaElement {
 public class MatroskaCodecSettings : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\CodecSettings";
     public long? Id => 0x3A9697;
-    public string? Type => @"utf-8";
+    public ElementType Type => ElementType.Utf8String;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1675,7 +1676,7 @@ public class MatroskaCodecSettings : IMatroskaElement {
 public class MatroskaCodecInfoURL : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\CodecInfoURL";
     public long? Id => 0x3B4040;
-    public string? Type => @"string";
+    public ElementType Type => ElementType.ASCIIString;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -1687,7 +1688,7 @@ public class MatroskaCodecInfoURL : IMatroskaElement {
 public class MatroskaCodecDownloadURL : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\CodecDownloadURL";
     public long? Id => 0x26B240;
-    public string? Type => @"string";
+    public ElementType Type => ElementType.ASCIIString;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -1699,7 +1700,7 @@ public class MatroskaCodecDownloadURL : IMatroskaElement {
 public class MatroskaCodecDecodeAll : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\CodecDecodeAll";
     public long? Id => 0xAA;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1714,7 +1715,7 @@ public class MatroskaCodecDecodeAll : IMatroskaElement {
 public class MatroskaTrackOverlay : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackOverlay";
     public long? Id => 0x6FAB;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -1729,7 +1730,7 @@ public class MatroskaTrackOverlay : IMatroskaElement {
 public class MatroskaCodecDelay : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\CodecDelay";
     public long? Id => 0x56AA;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1742,7 +1743,7 @@ public class MatroskaCodecDelay : IMatroskaElement {
 public class MatroskaSeekPreRoll : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\SeekPreRoll";
     public long? Id => 0x56BB;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1754,7 +1755,7 @@ public class MatroskaSeekPreRoll : IMatroskaElement {
 public class MatroskaTrackTranslate : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackTranslate";
     public long? Id => 0x6624;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -1767,7 +1768,7 @@ public class MatroskaTrackTranslate : IMatroskaElement {
 public class MatroskaTrackTranslateTrackID : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackTranslate\TrackTranslateTrackID";
     public long? Id => 0x66A5;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1779,7 +1780,7 @@ public class MatroskaTrackTranslateTrackID : IMatroskaElement {
 public class MatroskaTrackTranslateCodec : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackTranslate\TrackTranslateCodec";
     public long? Id => 0x66BF;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1791,7 +1792,7 @@ public class MatroskaTrackTranslateCodec : IMatroskaElement {
 public class MatroskaTrackTranslateEditionUID : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackTranslate\TrackTranslateEditionUID";
     public long? Id => 0x66FC;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -1803,7 +1804,7 @@ public class MatroskaTrackTranslateEditionUID : IMatroskaElement {
 public class MatroskaVideo : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video";
     public long? Id => 0xE0;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1815,7 +1816,7 @@ public class MatroskaVideo : IMatroskaElement {
 public class MatroskaFlagInterlaced : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\FlagInterlaced";
     public long? Id => 0x9A;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1827,7 +1828,7 @@ public class MatroskaFlagInterlaced : IMatroskaElement {
 public class MatroskaFieldOrder : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\FieldOrder";
     public long? Id => 0x9D;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1839,7 +1840,7 @@ public class MatroskaFieldOrder : IMatroskaElement {
 public class MatroskaStereoMode : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\StereoMode";
     public long? Id => 0x53B8;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1852,7 +1853,7 @@ public class MatroskaStereoMode : IMatroskaElement {
 public class MatroskaAlphaMode : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\AlphaMode";
     public long? Id => 0x53C0;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1864,7 +1865,7 @@ public class MatroskaAlphaMode : IMatroskaElement {
 public class MatroskaOldStereoMode : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\OldStereoMode";
     public long? Id => 0x53B9;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1876,7 +1877,7 @@ public class MatroskaOldStereoMode : IMatroskaElement {
 public class MatroskaPixelWidth : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\PixelWidth";
     public long? Id => 0xB0;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1888,7 +1889,7 @@ public class MatroskaPixelWidth : IMatroskaElement {
 public class MatroskaPixelHeight : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\PixelHeight";
     public long? Id => 0xBA;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1900,7 +1901,7 @@ public class MatroskaPixelHeight : IMatroskaElement {
 public class MatroskaPixelCropBottom : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\PixelCropBottom";
     public long? Id => 0x54AA;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1912,7 +1913,7 @@ public class MatroskaPixelCropBottom : IMatroskaElement {
 public class MatroskaPixelCropTop : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\PixelCropTop";
     public long? Id => 0x54BB;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1924,7 +1925,7 @@ public class MatroskaPixelCropTop : IMatroskaElement {
 public class MatroskaPixelCropLeft : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\PixelCropLeft";
     public long? Id => 0x54CC;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1936,7 +1937,7 @@ public class MatroskaPixelCropLeft : IMatroskaElement {
 public class MatroskaPixelCropRight : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\PixelCropRight";
     public long? Id => 0x54DD;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1948,7 +1949,7 @@ public class MatroskaPixelCropRight : IMatroskaElement {
 public class MatroskaDisplayWidth : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\DisplayWidth";
     public long? Id => 0x54B0;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1960,7 +1961,7 @@ public class MatroskaDisplayWidth : IMatroskaElement {
 public class MatroskaDisplayHeight : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\DisplayHeight";
     public long? Id => 0x54BA;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1972,7 +1973,7 @@ public class MatroskaDisplayHeight : IMatroskaElement {
 public class MatroskaDisplayUnit : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\DisplayUnit";
     public long? Id => 0x54B2;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -1984,7 +1985,7 @@ public class MatroskaDisplayUnit : IMatroskaElement {
 public class MatroskaAspectRatioType : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\AspectRatioType";
     public long? Id => 0x54B3;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -1997,7 +1998,7 @@ public class MatroskaAspectRatioType : IMatroskaElement {
 public class MatroskaUncompressedFourCC : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\UncompressedFourCC";
     public long? Id => 0x2EB524;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => @"4";
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2009,7 +2010,7 @@ public class MatroskaUncompressedFourCC : IMatroskaElement {
 public class MatroskaGammaValue : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\GammaValue";
     public long? Id => 0x2FB523;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2021,7 +2022,7 @@ public class MatroskaGammaValue : IMatroskaElement {
 public class MatroskaFrameRate : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\FrameRate";
     public long? Id => 0x2383E3;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2033,7 +2034,7 @@ public class MatroskaFrameRate : IMatroskaElement {
 public class MatroskaColour : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour";
     public long? Id => 0x55B0;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2046,7 +2047,7 @@ public class MatroskaColour : IMatroskaElement {
 public class MatroskaMatrixCoefficients : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\MatrixCoefficients";
     public long? Id => 0x55B1;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2058,7 +2059,7 @@ public class MatroskaMatrixCoefficients : IMatroskaElement {
 public class MatroskaBitsPerChannel : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\BitsPerChannel";
     public long? Id => 0x55B2;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2071,7 +2072,7 @@ public class MatroskaBitsPerChannel : IMatroskaElement {
 public class MatroskaChromaSubsamplingHorz : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\ChromaSubsamplingHorz";
     public long? Id => 0x55B3;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2084,7 +2085,7 @@ public class MatroskaChromaSubsamplingHorz : IMatroskaElement {
 public class MatroskaChromaSubsamplingVert : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\ChromaSubsamplingVert";
     public long? Id => 0x55B4;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2098,7 +2099,7 @@ public class MatroskaChromaSubsamplingVert : IMatroskaElement {
 public class MatroskaCbSubsamplingHorz : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\CbSubsamplingHorz";
     public long? Id => 0x55B5;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2111,7 +2112,7 @@ public class MatroskaCbSubsamplingHorz : IMatroskaElement {
 public class MatroskaCbSubsamplingVert : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\CbSubsamplingVert";
     public long? Id => 0x55B6;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2123,7 +2124,7 @@ public class MatroskaCbSubsamplingVert : IMatroskaElement {
 public class MatroskaChromaSitingHorz : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\ChromaSitingHorz";
     public long? Id => 0x55B7;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2135,7 +2136,7 @@ public class MatroskaChromaSitingHorz : IMatroskaElement {
 public class MatroskaChromaSitingVert : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\ChromaSitingVert";
     public long? Id => 0x55B8;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2147,7 +2148,7 @@ public class MatroskaChromaSitingVert : IMatroskaElement {
 public class MatroskaRange : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\Range";
     public long? Id => 0x55B9;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2160,7 +2161,7 @@ public class MatroskaRange : IMatroskaElement {
 public class MatroskaTransferCharacteristics : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\TransferCharacteristics";
     public long? Id => 0x55BA;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2173,7 +2174,7 @@ public class MatroskaTransferCharacteristics : IMatroskaElement {
 public class MatroskaPrimaries : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\Primaries";
     public long? Id => 0x55BB;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2186,7 +2187,7 @@ public class MatroskaPrimaries : IMatroskaElement {
 public class MatroskaMaxCLL : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\MaxCLL";
     public long? Id => 0x55BC;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2199,7 +2200,7 @@ public class MatroskaMaxCLL : IMatroskaElement {
 public class MatroskaMaxFALL : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\MaxFALL";
     public long? Id => 0x55BD;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2211,7 +2212,7 @@ public class MatroskaMaxFALL : IMatroskaElement {
 public class MatroskaMasteringMetadata : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\MasteringMetadata";
     public long? Id => 0x55D0;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2223,7 +2224,7 @@ public class MatroskaMasteringMetadata : IMatroskaElement {
 public class MatroskaPrimaryRChromaticityX : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\MasteringMetadata\PrimaryRChromaticityX";
     public long? Id => 0x55D1;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2235,7 +2236,7 @@ public class MatroskaPrimaryRChromaticityX : IMatroskaElement {
 public class MatroskaPrimaryRChromaticityY : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\MasteringMetadata\PrimaryRChromaticityY";
     public long? Id => 0x55D2;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2247,7 +2248,7 @@ public class MatroskaPrimaryRChromaticityY : IMatroskaElement {
 public class MatroskaPrimaryGChromaticityX : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\MasteringMetadata\PrimaryGChromaticityX";
     public long? Id => 0x55D3;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2259,7 +2260,7 @@ public class MatroskaPrimaryGChromaticityX : IMatroskaElement {
 public class MatroskaPrimaryGChromaticityY : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\MasteringMetadata\PrimaryGChromaticityY";
     public long? Id => 0x55D4;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2271,7 +2272,7 @@ public class MatroskaPrimaryGChromaticityY : IMatroskaElement {
 public class MatroskaPrimaryBChromaticityX : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\MasteringMetadata\PrimaryBChromaticityX";
     public long? Id => 0x55D5;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2283,7 +2284,7 @@ public class MatroskaPrimaryBChromaticityX : IMatroskaElement {
 public class MatroskaPrimaryBChromaticityY : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\MasteringMetadata\PrimaryBChromaticityY";
     public long? Id => 0x55D6;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2295,7 +2296,7 @@ public class MatroskaPrimaryBChromaticityY : IMatroskaElement {
 public class MatroskaWhitePointChromaticityX : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\MasteringMetadata\WhitePointChromaticityX";
     public long? Id => 0x55D7;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2307,7 +2308,7 @@ public class MatroskaWhitePointChromaticityX : IMatroskaElement {
 public class MatroskaWhitePointChromaticityY : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\MasteringMetadata\WhitePointChromaticityY";
     public long? Id => 0x55D8;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2319,7 +2320,7 @@ public class MatroskaWhitePointChromaticityY : IMatroskaElement {
 public class MatroskaLuminanceMax : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\MasteringMetadata\LuminanceMax";
     public long? Id => 0x55D9;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2331,7 +2332,7 @@ public class MatroskaLuminanceMax : IMatroskaElement {
 public class MatroskaLuminanceMin : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Colour\MasteringMetadata\LuminanceMin";
     public long? Id => 0x55DA;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2343,7 +2344,7 @@ public class MatroskaLuminanceMin : IMatroskaElement {
 public class MatroskaProjection : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Projection";
     public long? Id => 0x7670;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2355,7 +2356,7 @@ public class MatroskaProjection : IMatroskaElement {
 public class MatroskaProjectionType : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Projection\ProjectionType";
     public long? Id => 0x7671;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2375,7 +2376,7 @@ public class MatroskaProjectionType : IMatroskaElement {
 public class MatroskaProjectionPrivate : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Projection\ProjectionPrivate";
     public long? Id => 0x7672;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2391,7 +2392,7 @@ public class MatroskaProjectionPrivate : IMatroskaElement {
 public class MatroskaProjectionPoseYaw : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Projection\ProjectionPoseYaw";
     public long? Id => 0x7673;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2406,7 +2407,7 @@ public class MatroskaProjectionPoseYaw : IMatroskaElement {
 public class MatroskaProjectionPosePitch : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Projection\ProjectionPosePitch";
     public long? Id => 0x7674;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2423,7 +2424,7 @@ public class MatroskaProjectionPosePitch : IMatroskaElement {
 public class MatroskaProjectionPoseRoll : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Video\Projection\ProjectionPoseRoll";
     public long? Id => 0x7675;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2435,7 +2436,7 @@ public class MatroskaProjectionPoseRoll : IMatroskaElement {
 public class MatroskaAudio : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Audio";
     public long? Id => 0xE1;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2447,7 +2448,7 @@ public class MatroskaAudio : IMatroskaElement {
 public class MatroskaSamplingFrequency : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Audio\SamplingFrequency";
     public long? Id => 0xB5;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2459,7 +2460,7 @@ public class MatroskaSamplingFrequency : IMatroskaElement {
 public class MatroskaOutputSamplingFrequency : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Audio\OutputSamplingFrequency";
     public long? Id => 0x78B5;
-    public string? Type => @"float";
+    public ElementType Type => ElementType.Float;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2471,7 +2472,7 @@ public class MatroskaOutputSamplingFrequency : IMatroskaElement {
 public class MatroskaChannels : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Audio\Channels";
     public long? Id => 0x9F;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2483,7 +2484,7 @@ public class MatroskaChannels : IMatroskaElement {
 public class MatroskaChannelPositions : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Audio\ChannelPositions";
     public long? Id => 0x7D7B;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2495,7 +2496,7 @@ public class MatroskaChannelPositions : IMatroskaElement {
 public class MatroskaBitDepth : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Audio\BitDepth";
     public long? Id => 0x6264;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2507,7 +2508,7 @@ public class MatroskaBitDepth : IMatroskaElement {
 public class MatroskaEmphasis : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\Audio\Emphasis";
     public long? Id => 0x52F1;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2520,7 +2521,7 @@ public class MatroskaEmphasis : IMatroskaElement {
 public class MatroskaTrackOperation : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackOperation";
     public long? Id => 0xE2;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2532,7 +2533,7 @@ public class MatroskaTrackOperation : IMatroskaElement {
 public class MatroskaTrackCombinePlanes : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackOperation\TrackCombinePlanes";
     public long? Id => 0xE3;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2544,7 +2545,7 @@ public class MatroskaTrackCombinePlanes : IMatroskaElement {
 public class MatroskaTrackPlane : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackOperation\TrackCombinePlanes\TrackPlane";
     public long? Id => 0xE4;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => null;
@@ -2556,7 +2557,7 @@ public class MatroskaTrackPlane : IMatroskaElement {
 public class MatroskaTrackPlaneUID : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackOperation\TrackCombinePlanes\TrackPlane\TrackPlaneUID";
     public long? Id => 0xE5;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2568,7 +2569,7 @@ public class MatroskaTrackPlaneUID : IMatroskaElement {
 public class MatroskaTrackPlaneType : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackOperation\TrackCombinePlanes\TrackPlane\TrackPlaneType";
     public long? Id => 0xE6;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2580,7 +2581,7 @@ public class MatroskaTrackPlaneType : IMatroskaElement {
 public class MatroskaTrackJoinBlocks : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackOperation\TrackJoinBlocks";
     public long? Id => 0xE9;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2592,7 +2593,7 @@ public class MatroskaTrackJoinBlocks : IMatroskaElement {
 public class MatroskaTrackJoinUID : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrackOperation\TrackJoinBlocks\TrackJoinUID";
     public long? Id => 0xED;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => null;
@@ -2604,7 +2605,7 @@ public class MatroskaTrackJoinUID : IMatroskaElement {
 public class MatroskaTrickTrackUID : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrickTrackUID";
     public long? Id => 0xC0;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2616,7 +2617,7 @@ public class MatroskaTrickTrackUID : IMatroskaElement {
 public class MatroskaTrickTrackSegmentUID : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrickTrackSegmentUID";
     public long? Id => 0xC1;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => @"16";
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2629,7 +2630,7 @@ public class MatroskaTrickTrackSegmentUID : IMatroskaElement {
 public class MatroskaTrickTrackFlag : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrickTrackFlag";
     public long? Id => 0xC6;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2641,7 +2642,7 @@ public class MatroskaTrickTrackFlag : IMatroskaElement {
 public class MatroskaTrickMasterTrackUID : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrickMasterTrackUID";
     public long? Id => 0xC7;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2653,7 +2654,7 @@ public class MatroskaTrickMasterTrackUID : IMatroskaElement {
 public class MatroskaTrickMasterTrackSegmentUID : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\TrickMasterTrackSegmentUID";
     public long? Id => 0xC4;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => @"16";
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2665,7 +2666,7 @@ public class MatroskaTrickMasterTrackSegmentUID : IMatroskaElement {
 public class MatroskaContentEncodings : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings";
     public long? Id => 0x6D80;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2677,7 +2678,7 @@ public class MatroskaContentEncodings : IMatroskaElement {
 public class MatroskaContentEncoding : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings\ContentEncoding";
     public long? Id => 0x6240;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => null;
@@ -2691,7 +2692,7 @@ public class MatroskaContentEncoding : IMatroskaElement {
 public class MatroskaContentEncodingOrder : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings\ContentEncoding\ContentEncodingOrder";
     public long? Id => 0x5031;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2704,7 +2705,7 @@ public class MatroskaContentEncodingOrder : IMatroskaElement {
 public class MatroskaContentEncodingScope : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings\ContentEncoding\ContentEncodingScope";
     public long? Id => 0x5032;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2716,7 +2717,7 @@ public class MatroskaContentEncodingScope : IMatroskaElement {
 public class MatroskaContentEncodingType : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings\ContentEncoding\ContentEncodingType";
     public long? Id => 0x5033;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2730,7 +2731,7 @@ public class MatroskaContentEncodingType : IMatroskaElement {
 public class MatroskaContentCompression : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings\ContentEncoding\ContentCompression";
     public long? Id => 0x5034;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2742,7 +2743,7 @@ public class MatroskaContentCompression : IMatroskaElement {
 public class MatroskaContentCompAlgo : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings\ContentEncoding\ContentCompression\ContentCompAlgo";
     public long? Id => 0x4254;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2755,7 +2756,7 @@ public class MatroskaContentCompAlgo : IMatroskaElement {
 public class MatroskaContentCompSettings : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings\ContentEncoding\ContentCompression\ContentCompSettings";
     public long? Id => 0x4255;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2769,7 +2770,7 @@ public class MatroskaContentCompSettings : IMatroskaElement {
 public class MatroskaContentEncryption : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings\ContentEncoding\ContentEncryption";
     public long? Id => 0x5035;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2781,7 +2782,7 @@ public class MatroskaContentEncryption : IMatroskaElement {
 public class MatroskaContentEncAlgo : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings\ContentEncoding\ContentEncryption\ContentEncAlgo";
     public long? Id => 0x47E1;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2793,7 +2794,7 @@ public class MatroskaContentEncAlgo : IMatroskaElement {
 public class MatroskaContentEncKeyID : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings\ContentEncoding\ContentEncryption\ContentEncKeyID";
     public long? Id => 0x47E2;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2805,7 +2806,7 @@ public class MatroskaContentEncKeyID : IMatroskaElement {
 public class MatroskaContentEncAESSettings : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings\ContentEncoding\ContentEncryption\ContentEncAESSettings";
     public long? Id => 0x47E7;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2817,7 +2818,7 @@ public class MatroskaContentEncAESSettings : IMatroskaElement {
 public class MatroskaAESSettingsCipherMode : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings\ContentEncoding\ContentEncryption\ContentEncAESSettings\AESSettingsCipherMode";
     public long? Id => 0x47E8;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2829,7 +2830,7 @@ public class MatroskaAESSettingsCipherMode : IMatroskaElement {
 public class MatroskaContentSignature : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings\ContentEncoding\ContentEncryption\ContentSignature";
     public long? Id => 0x47E3;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2841,7 +2842,7 @@ public class MatroskaContentSignature : IMatroskaElement {
 public class MatroskaContentSigKeyID : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings\ContentEncoding\ContentEncryption\ContentSigKeyID";
     public long? Id => 0x47E4;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2853,7 +2854,7 @@ public class MatroskaContentSigKeyID : IMatroskaElement {
 public class MatroskaContentSigAlgo : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings\ContentEncoding\ContentEncryption\ContentSigAlgo";
     public long? Id => 0x47E5;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2865,7 +2866,7 @@ public class MatroskaContentSigAlgo : IMatroskaElement {
 public class MatroskaContentSigHashAlgo : IMatroskaElement {
     public string? Path => @"\Segment\Tracks\TrackEntry\ContentEncodings\ContentEncoding\ContentEncryption\ContentSigHashAlgo";
     public long? Id => 0x47E6;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2878,7 +2879,7 @@ public class MatroskaContentSigHashAlgo : IMatroskaElement {
 public class MatroskaCues : IMatroskaElement {
     public string? Path => @"\Segment\Cues";
     public long? Id => 0x1C53BB6B;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2890,7 +2891,7 @@ public class MatroskaCues : IMatroskaElement {
 public class MatroskaCuePoint : IMatroskaElement {
     public string? Path => @"\Segment\Cues\CuePoint";
     public long? Id => 0xBB;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => null;
@@ -2902,7 +2903,7 @@ public class MatroskaCuePoint : IMatroskaElement {
 public class MatroskaCueTime : IMatroskaElement {
     public string? Path => @"\Segment\Cues\CuePoint\CueTime";
     public long? Id => 0xB3;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2914,7 +2915,7 @@ public class MatroskaCueTime : IMatroskaElement {
 public class MatroskaCueTrackPositions : IMatroskaElement {
     public string? Path => @"\Segment\Cues\CuePoint\CueTrackPositions";
     public long? Id => 0xB7;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => null;
@@ -2926,7 +2927,7 @@ public class MatroskaCueTrackPositions : IMatroskaElement {
 public class MatroskaCueTrack : IMatroskaElement {
     public string? Path => @"\Segment\Cues\CuePoint\CueTrackPositions\CueTrack";
     public long? Id => 0xF7;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2938,7 +2939,7 @@ public class MatroskaCueTrack : IMatroskaElement {
 public class MatroskaCueClusterPosition : IMatroskaElement {
     public string? Path => @"\Segment\Cues\CuePoint\CueTrackPositions\CueClusterPosition";
     public long? Id => 0xF1;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -2951,7 +2952,7 @@ public class MatroskaCueClusterPosition : IMatroskaElement {
 public class MatroskaCueRelativePosition : IMatroskaElement {
     public string? Path => @"\Segment\Cues\CuePoint\CueTrackPositions\CueRelativePosition";
     public long? Id => 0xF0;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2964,7 +2965,7 @@ public class MatroskaCueRelativePosition : IMatroskaElement {
 public class MatroskaCueDuration : IMatroskaElement {
     public string? Path => @"\Segment\Cues\CuePoint\CueTrackPositions\CueDuration";
     public long? Id => 0xB2;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2976,7 +2977,7 @@ public class MatroskaCueDuration : IMatroskaElement {
 public class MatroskaCueBlockNumber : IMatroskaElement {
     public string? Path => @"\Segment\Cues\CuePoint\CueTrackPositions\CueBlockNumber";
     public long? Id => 0x5378;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -2989,7 +2990,7 @@ public class MatroskaCueBlockNumber : IMatroskaElement {
 public class MatroskaCueCodecState : IMatroskaElement {
     public string? Path => @"\Segment\Cues\CuePoint\CueTrackPositions\CueCodecState";
     public long? Id => 0xEA;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3001,7 +3002,7 @@ public class MatroskaCueCodecState : IMatroskaElement {
 public class MatroskaCueReference : IMatroskaElement {
     public string? Path => @"\Segment\Cues\CuePoint\CueTrackPositions\CueReference";
     public long? Id => 0xDB;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -3013,7 +3014,7 @@ public class MatroskaCueReference : IMatroskaElement {
 public class MatroskaCueRefTime : IMatroskaElement {
     public string? Path => @"\Segment\Cues\CuePoint\CueTrackPositions\CueReference\CueRefTime";
     public long? Id => 0x96;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3025,7 +3026,7 @@ public class MatroskaCueRefTime : IMatroskaElement {
 public class MatroskaCueRefCluster : IMatroskaElement {
     public string? Path => @"\Segment\Cues\CuePoint\CueTrackPositions\CueReference\CueRefCluster";
     public long? Id => 0x97;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3037,7 +3038,7 @@ public class MatroskaCueRefCluster : IMatroskaElement {
 public class MatroskaCueRefNumber : IMatroskaElement {
     public string? Path => @"\Segment\Cues\CuePoint\CueTrackPositions\CueReference\CueRefNumber";
     public long? Id => 0x535F;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3050,7 +3051,7 @@ public class MatroskaCueRefNumber : IMatroskaElement {
 public class MatroskaCueRefCodecState : IMatroskaElement {
     public string? Path => @"\Segment\Cues\CuePoint\CueTrackPositions\CueReference\CueRefCodecState";
     public long? Id => 0xEB;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3062,7 +3063,7 @@ public class MatroskaCueRefCodecState : IMatroskaElement {
 public class MatroskaAttachments : IMatroskaElement {
     public string? Path => @"\Segment\Attachments";
     public long? Id => 0x1941A469;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3074,7 +3075,7 @@ public class MatroskaAttachments : IMatroskaElement {
 public class MatroskaAttachedFile : IMatroskaElement {
     public string? Path => @"\Segment\Attachments\AttachedFile";
     public long? Id => 0x61A7;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => null;
@@ -3086,7 +3087,7 @@ public class MatroskaAttachedFile : IMatroskaElement {
 public class MatroskaFileDescription : IMatroskaElement {
     public string? Path => @"\Segment\Attachments\AttachedFile\FileDescription";
     public long? Id => 0x467E;
-    public string? Type => @"utf-8";
+    public ElementType Type => ElementType.Utf8String;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3098,7 +3099,7 @@ public class MatroskaFileDescription : IMatroskaElement {
 public class MatroskaFileName : IMatroskaElement {
     public string? Path => @"\Segment\Attachments\AttachedFile\FileName";
     public long? Id => 0x466E;
-    public string? Type => @"utf-8";
+    public ElementType Type => ElementType.Utf8String;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3110,7 +3111,7 @@ public class MatroskaFileName : IMatroskaElement {
 public class MatroskaFileMediaType : IMatroskaElement {
     public string? Path => @"\Segment\Attachments\AttachedFile\FileMediaType";
     public long? Id => 0x4660;
-    public string? Type => @"string";
+    public ElementType Type => ElementType.ASCIIString;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3122,7 +3123,7 @@ public class MatroskaFileMediaType : IMatroskaElement {
 public class MatroskaFileData : IMatroskaElement {
     public string? Path => @"\Segment\Attachments\AttachedFile\FileData";
     public long? Id => 0x465C;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3134,7 +3135,7 @@ public class MatroskaFileData : IMatroskaElement {
 public class MatroskaFileUID : IMatroskaElement {
     public string? Path => @"\Segment\Attachments\AttachedFile\FileUID";
     public long? Id => 0x46AE;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3146,7 +3147,7 @@ public class MatroskaFileUID : IMatroskaElement {
 public class MatroskaFileReferral : IMatroskaElement {
     public string? Path => @"\Segment\Attachments\AttachedFile\FileReferral";
     public long? Id => 0x4675;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3158,7 +3159,7 @@ public class MatroskaFileReferral : IMatroskaElement {
 public class MatroskaFileUsedStartTime : IMatroskaElement {
     public string? Path => @"\Segment\Attachments\AttachedFile\FileUsedStartTime";
     public long? Id => 0x4661;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3170,7 +3171,7 @@ public class MatroskaFileUsedStartTime : IMatroskaElement {
 public class MatroskaFileUsedEndTime : IMatroskaElement {
     public string? Path => @"\Segment\Attachments\AttachedFile\FileUsedEndTime";
     public long? Id => 0x4662;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3183,7 +3184,7 @@ public class MatroskaFileUsedEndTime : IMatroskaElement {
 public class MatroskaChapters : IMatroskaElement {
     public string? Path => @"\Segment\Chapters";
     public long? Id => 0x1043A770;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3195,7 +3196,7 @@ public class MatroskaChapters : IMatroskaElement {
 public class MatroskaEditionEntry : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry";
     public long? Id => 0x45B9;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => null;
@@ -3207,7 +3208,7 @@ public class MatroskaEditionEntry : IMatroskaElement {
 public class MatroskaEditionUID : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\EditionUID";
     public long? Id => 0x45BC;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3220,7 +3221,7 @@ public class MatroskaEditionUID : IMatroskaElement {
 public class MatroskaEditionFlagHidden : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\EditionFlagHidden";
     public long? Id => 0x45BD;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3232,7 +3233,7 @@ public class MatroskaEditionFlagHidden : IMatroskaElement {
 public class MatroskaEditionFlagDefault : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\EditionFlagDefault";
     public long? Id => 0x45DB;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3244,7 +3245,7 @@ public class MatroskaEditionFlagDefault : IMatroskaElement {
 public class MatroskaEditionFlagOrdered : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\EditionFlagOrdered";
     public long? Id => 0x45DD;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3256,7 +3257,7 @@ public class MatroskaEditionFlagOrdered : IMatroskaElement {
 public class MatroskaEditionDisplay : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\EditionDisplay";
     public long? Id => 0x4520;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -3268,7 +3269,7 @@ public class MatroskaEditionDisplay : IMatroskaElement {
 public class MatroskaEditionString : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\EditionDisplay\EditionString";
     public long? Id => 0x4521;
-    public string? Type => @"utf-8";
+    public ElementType Type => ElementType.Utf8String;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3281,7 +3282,7 @@ public class MatroskaEditionString : IMatroskaElement {
 public class MatroskaEditionLanguageIETF : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\EditionDisplay\EditionLanguageIETF";
     public long? Id => 0x45E4;
-    public string? Type => @"string";
+    public ElementType Type => ElementType.ASCIIString;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -3293,7 +3294,7 @@ public class MatroskaEditionLanguageIETF : IMatroskaElement {
 public class MatroskaChapterAtom : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom";
     public long? Id => 0xB6;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => null;
@@ -3305,7 +3306,7 @@ public class MatroskaChapterAtom : IMatroskaElement {
 public class MatroskaChapterUID : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterUID";
     public long? Id => 0x73C4;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3318,7 +3319,7 @@ public class MatroskaChapterUID : IMatroskaElement {
 public class MatroskaChapterStringUID : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterStringUID";
     public long? Id => 0x5654;
-    public string? Type => @"utf-8";
+    public ElementType Type => ElementType.Utf8String;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3330,7 +3331,7 @@ public class MatroskaChapterStringUID : IMatroskaElement {
 public class MatroskaChapterTimeStart : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterTimeStart";
     public long? Id => 0x91;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3343,7 +3344,7 @@ public class MatroskaChapterTimeStart : IMatroskaElement {
 public class MatroskaChapterTimeEnd : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterTimeEnd";
     public long? Id => 0x92;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3356,7 +3357,7 @@ public class MatroskaChapterTimeEnd : IMatroskaElement {
 public class MatroskaChapterFlagHidden : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterFlagHidden";
     public long? Id => 0x98;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3369,7 +3370,7 @@ public class MatroskaChapterFlagHidden : IMatroskaElement {
 public class MatroskaChapterFlagEnabled : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterFlagEnabled";
     public long? Id => 0x4598;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3381,7 +3382,7 @@ public class MatroskaChapterFlagEnabled : IMatroskaElement {
 public class MatroskaChapterSegmentUUID : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterSegmentUUID";
     public long? Id => 0x6E67;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => @"16";
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3395,7 +3396,7 @@ public class MatroskaChapterSegmentUUID : IMatroskaElement {
 public class MatroskaChapterSkipType : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterSkipType";
     public long? Id => 0x4588;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3408,7 +3409,7 @@ public class MatroskaChapterSkipType : IMatroskaElement {
 public class MatroskaChapterSegmentEditionUID : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterSegmentEditionUID";
     public long? Id => 0x6EBC;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3421,7 +3422,7 @@ public class MatroskaChapterSegmentEditionUID : IMatroskaElement {
 public class MatroskaChapterPhysicalEquiv : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterPhysicalEquiv";
     public long? Id => 0x63C3;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3433,7 +3434,7 @@ public class MatroskaChapterPhysicalEquiv : IMatroskaElement {
 public class MatroskaChapterTrack : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterTrack";
     public long? Id => 0x8F;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3447,7 +3448,7 @@ public class MatroskaChapterTrack : IMatroskaElement {
 public class MatroskaChapterTrackUID : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterTrack\ChapterTrackUID";
     public long? Id => 0x89;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => null;
@@ -3459,7 +3460,7 @@ public class MatroskaChapterTrackUID : IMatroskaElement {
 public class MatroskaChapterDisplay : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterDisplay";
     public long? Id => 0x80;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -3471,7 +3472,7 @@ public class MatroskaChapterDisplay : IMatroskaElement {
 public class MatroskaChapString : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterDisplay\ChapString";
     public long? Id => 0x85;
-    public string? Type => @"utf-8";
+    public ElementType Type => ElementType.Utf8String;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3485,7 +3486,7 @@ public class MatroskaChapString : IMatroskaElement {
 public class MatroskaChapLanguage : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterDisplay\ChapLanguage";
     public long? Id => 0x437C;
-    public string? Type => @"string";
+    public ElementType Type => ElementType.ASCIIString;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => null;
@@ -3499,7 +3500,7 @@ public class MatroskaChapLanguage : IMatroskaElement {
 public class MatroskaChapLanguageBCP47 : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterDisplay\ChapLanguageBCP47";
     public long? Id => 0x437D;
-    public string? Type => @"string";
+    public ElementType Type => ElementType.ASCIIString;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -3513,7 +3514,7 @@ public class MatroskaChapLanguageBCP47 : IMatroskaElement {
 public class MatroskaChapCountry : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapterDisplay\ChapCountry";
     public long? Id => 0x437E;
-    public string? Type => @"string";
+    public ElementType Type => ElementType.ASCIIString;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -3525,7 +3526,7 @@ public class MatroskaChapCountry : IMatroskaElement {
 public class MatroskaChapProcess : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapProcess";
     public long? Id => 0x6944;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -3539,7 +3540,7 @@ public class MatroskaChapProcess : IMatroskaElement {
 public class MatroskaChapProcessCodecID : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapProcess\ChapProcessCodecID";
     public long? Id => 0x6955;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3552,7 +3553,7 @@ public class MatroskaChapProcessCodecID : IMatroskaElement {
 public class MatroskaChapProcessPrivate : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapProcess\ChapProcessPrivate";
     public long? Id => 0x450D;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3564,7 +3565,7 @@ public class MatroskaChapProcessPrivate : IMatroskaElement {
 public class MatroskaChapProcessCommand : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapProcess\ChapProcessCommand";
     public long? Id => 0x6911;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -3576,7 +3577,7 @@ public class MatroskaChapProcessCommand : IMatroskaElement {
 public class MatroskaChapProcessTime : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapProcess\ChapProcessCommand\ChapProcessTime";
     public long? Id => 0x6922;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3590,7 +3591,7 @@ public class MatroskaChapProcessTime : IMatroskaElement {
 public class MatroskaChapProcessData : IMatroskaElement {
     public string? Path => @"\Segment\Chapters\EditionEntry\+ChapterAtom\ChapProcess\ChapProcessCommand\ChapProcessData";
     public long? Id => 0x6933;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3603,7 +3604,7 @@ public class MatroskaChapProcessData : IMatroskaElement {
 public class MatroskaTags : IMatroskaElement {
     public string? Path => @"\Segment\Tags";
     public long? Id => 0x1254C367;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -3615,7 +3616,7 @@ public class MatroskaTags : IMatroskaElement {
 public class MatroskaTag : IMatroskaElement {
     public string? Path => @"\Segment\Tags\Tag";
     public long? Id => 0x7373;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => null;
@@ -3628,7 +3629,7 @@ public class MatroskaTag : IMatroskaElement {
 public class MatroskaTargets : IMatroskaElement {
     public string? Path => @"\Segment\Tags\Tag\Targets";
     public long? Id => 0x63C0;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3640,7 +3641,7 @@ public class MatroskaTargets : IMatroskaElement {
 public class MatroskaTargetTypeValue : IMatroskaElement {
     public string? Path => @"\Segment\Tags\Tag\Targets\TargetTypeValue";
     public long? Id => 0x68CA;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3653,7 +3654,7 @@ public class MatroskaTargetTypeValue : IMatroskaElement {
 public class MatroskaTargetType : IMatroskaElement {
     public string? Path => @"\Segment\Tags\Tag\Targets\TargetType";
     public long? Id => 0x63CA;
-    public string? Type => @"string";
+    public ElementType Type => ElementType.ASCIIString;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3665,7 +3666,7 @@ public class MatroskaTargetType : IMatroskaElement {
 public class MatroskaTagTrackUID : IMatroskaElement {
     public string? Path => @"\Segment\Tags\Tag\Targets\TagTrackUID";
     public long? Id => 0x63C5;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -3677,7 +3678,7 @@ public class MatroskaTagTrackUID : IMatroskaElement {
 public class MatroskaTagEditionUID : IMatroskaElement {
     public string? Path => @"\Segment\Tags\Tag\Targets\TagEditionUID";
     public long? Id => 0x63C9;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -3689,7 +3690,7 @@ public class MatroskaTagEditionUID : IMatroskaElement {
 public class MatroskaTagChapterUID : IMatroskaElement {
     public string? Path => @"\Segment\Tags\Tag\Targets\TagChapterUID";
     public long? Id => 0x63C4;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -3701,7 +3702,7 @@ public class MatroskaTagChapterUID : IMatroskaElement {
 public class MatroskaTagAttachmentUID : IMatroskaElement {
     public string? Path => @"\Segment\Tags\Tag\Targets\TagAttachmentUID";
     public long? Id => 0x63C6;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => null;
@@ -3713,7 +3714,7 @@ public class MatroskaTagAttachmentUID : IMatroskaElement {
 public class MatroskaSimpleTag : IMatroskaElement {
     public string? Path => @"\Segment\Tags\Tag\+SimpleTag";
     public long? Id => 0x67C8;
-    public string? Type => @"master";
+    public ElementType Type => ElementType.Master;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => null;
@@ -3725,7 +3726,7 @@ public class MatroskaSimpleTag : IMatroskaElement {
 public class MatroskaTagName : IMatroskaElement {
     public string? Path => @"\Segment\Tags\Tag\+SimpleTag\TagName";
     public long? Id => 0x45A3;
-    public string? Type => @"utf-8";
+    public ElementType Type => ElementType.Utf8String;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3739,7 +3740,7 @@ public class MatroskaTagName : IMatroskaElement {
 public class MatroskaTagLanguage : IMatroskaElement {
     public string? Path => @"\Segment\Tags\Tag\+SimpleTag\TagLanguage";
     public long? Id => 0x447A;
-    public string? Type => @"string";
+    public ElementType Type => ElementType.ASCIIString;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3753,7 +3754,7 @@ public class MatroskaTagLanguage : IMatroskaElement {
 public class MatroskaTagLanguageBCP47 : IMatroskaElement {
     public string? Path => @"\Segment\Tags\Tag\+SimpleTag\TagLanguageBCP47";
     public long? Id => 0x447B;
-    public string? Type => @"string";
+    public ElementType Type => ElementType.ASCIIString;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3765,7 +3766,7 @@ public class MatroskaTagLanguageBCP47 : IMatroskaElement {
 public class MatroskaTagDefault : IMatroskaElement {
     public string? Path => @"\Segment\Tags\Tag\+SimpleTag\TagDefault";
     public long? Id => 0x4484;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3777,7 +3778,7 @@ public class MatroskaTagDefault : IMatroskaElement {
 public class MatroskaTagDefaultBogus : IMatroskaElement {
     public string? Path => @"\Segment\Tags\Tag\+SimpleTag\TagDefaultBogus";
     public long? Id => 0x44B4;
-    public string? Type => @"uinteger";
+    public ElementType Type => ElementType.UnsignedInteger;
     public string? Length => null;
     public int? MinOccurs => 1;
     public int? MaxOccurs => 1;
@@ -3789,7 +3790,7 @@ public class MatroskaTagDefaultBogus : IMatroskaElement {
 public class MatroskaTagString : IMatroskaElement {
     public string? Path => @"\Segment\Tags\Tag\+SimpleTag\TagString";
     public long? Id => 0x4487;
-    public string? Type => @"utf-8";
+    public ElementType Type => ElementType.Utf8String;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;
@@ -3801,7 +3802,7 @@ public class MatroskaTagString : IMatroskaElement {
 public class MatroskaTagBinary : IMatroskaElement {
     public string? Path => @"\Segment\Tags\Tag\+SimpleTag\TagBinary";
     public long? Id => 0x4485;
-    public string? Type => @"binary";
+    public ElementType Type => ElementType.Binary;
     public string? Length => null;
     public int? MinOccurs => null;
     public int? MaxOccurs => 1;

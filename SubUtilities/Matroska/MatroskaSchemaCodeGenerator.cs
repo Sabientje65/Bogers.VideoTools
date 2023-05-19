@@ -56,6 +56,7 @@ public class MatroskaSchemaCodeGenerator
     {
         _writer.WriteLine("using System;");
         _writer.WriteLine("using System.Collections.Generic;");
+        _writer.WriteLine("using SubUtilities.Matroska;");
         _writer.WriteLine();
     }
     
@@ -71,7 +72,7 @@ public class MatroskaSchemaCodeGenerator
 public interface IMatroskaElement {
     {{PropertyDeclaration("Path", "string")}}
     {{PropertyDeclaration("Id", "long")}}
-    {{PropertyDeclaration("Type", "string")}}
+    {{PropertyDeclaration("Type", "ElementType")}}
     {{PropertyDeclaration("Length", "string")}}
     {{PropertyDeclaration("MinOccurs", "int")}}
     {{PropertyDeclaration("MaxOccurs", "int")}}
@@ -133,7 +134,7 @@ public class MatroskaElementRegistry {
 public class Matroska{{name}} : IMatroskaElement {
     {{PropertyDeclaration("Path", "string", path)}}
     {{PropertyDeclaration("Id", "long", id)}}
-    {{PropertyDeclaration("Type", "string", type)}}
+    {{PropertyDeclaration("Type", "ElementType", ResolveElementType(type))}}
     {{PropertyDeclaration("Length", "string", length)}}
     {{PropertyDeclaration("MinOccurs", "int", minOccurs)}}
     {{PropertyDeclaration("MaxOccurs", "int", maxOccurs)}}
@@ -142,13 +143,29 @@ public class Matroska{{name}} : IMatroskaElement {
         
         _writer.WriteLine(declaration);
     }
+
+    private string ResolveElementType(string value) => value switch
+    {
+        "integer" => "ElementType.SignedInteger",
+        "uinteger" => "ElementType.UnsignedInteger",
+        "float" => "ElementType.Float",
+        "string" => "ElementType.ASCIIString",
+        "date" => "ElementType.Date",
+        "utf-8" => "ElementType.Utf8String",
+        "master" => "ElementType.Master",
+        "binary" => "ElementType.Binary",
+        _ => "ElementType.Unknown"
+    };
     
     private string PropertyDeclaration(
         string name,
         string netType
     )
     {
-        return $"public {netType}? {name} {{ get; }}";
+        var nullable = netType != "ElementType";
+        var nullableMarker = nullable ? "?" : String.Empty;
+        
+        return $"public {netType}{nullableMarker} {name} {{ get; }}";
     }
 
     private string PropertyDeclaration(
@@ -160,7 +177,10 @@ public class Matroska{{name}} : IMatroskaElement {
         if (String.IsNullOrEmpty(value)) value = "null";
         else if (netType == "string") value = $"@\"{value}\"";
 
-        return $"public {netType}? {name} => {value};";
+        var nullable = netType != "ElementType";
+        var nullableMarker = nullable ? "?" : String.Empty;
+        
+        return $"public {netType}{nullableMarker} {name} => {value};";
     }
     
     private void DeclareDocumentation(EBMLSchemaElement element)

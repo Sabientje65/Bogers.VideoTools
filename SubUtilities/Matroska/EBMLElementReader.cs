@@ -96,22 +96,7 @@ public class EBMLElementReader
         }
 
         var matroskaElement = MatroskaElementRegistry.FindElement(id);
-        if (matroskaElement != null)
-        {
-            type = matroskaElement.Type switch
-            {
-                "integer" => ElementType.SignedInteger,
-                "uinteger" => ElementType.UnsignedInteger,
-                "float" => ElementType.Float,
-                "string" => ElementType.ASCIIString,
-                "date" => ElementType.Date,
-                "utf-8" => ElementType.Utf8String,
-                "master" => ElementType.Master,
-                "binary" => ElementType.Binary,
-                
-                _=> ElementType.Unknown
-            };
-        }
+        if (matroskaElement != null) type = matroskaElement.Type;
 
         return new Element(
             id, 

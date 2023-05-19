@@ -234,6 +234,44 @@ public class MatroskaVideo
         }
     }
 
+    public class ElementFactory
+    {
+
+        public static Element CreateElement(
+            IMatroskaElement definition,
+            IElementContent content
+        )
+        {
+            return new Element(
+                new ElementId(definition.Id!.Value),
+                VInt.FromData(content.Size),
+                definition.Type,
+                0,
+                content,
+                null
+            );
+        }
+
+        public static Element CreateElement( IMatroskaElement definition, MemoryStream contentBuffer ) => CreateElement(definition, new BufferElementContent(contentBuffer));
+
+        public static Element CreateElement( IMatroskaElement definition, Element[] children )
+        {
+            var size = children.Sum(BitMask.SizeOf);
+
+            var element = new Element(
+                new ElementId(definition.Id!.Value),
+                VInt.FromData(size),
+                definition.Type,
+                0,
+                new NoElementContent()
+            );
+
+            foreach (var child in children) child.SetParent(element);
+
+            return element;
+        }
+    }
+    
     public Element CreateSubtitleBlock(
         SrtSegment segment, 
         int track
@@ -244,13 +282,10 @@ public class MatroskaVideo
         // todo: account for different timescales (see segment info -> timestamp scale)
 
         var duration = (long)(segment.TimeRange.To - segment.TimeRange.From).TotalMilliseconds;
-        var durationWidth = VInt.FromData(BitMask.SizeOf(duration));
+        // var durationWidth = VInt.FromData(BitMask.SizeOf(duration));
 
-        var blockDurationElement = new Element(
-            new ElementId(MatroskaElementRegistry.MatroskaBlockDuration.Id!.Value),
-            durationWidth,
-            ElementType.UnsignedInteger,
-            0,
+        var blockDurationElement = ElementFactory.CreateElement(
+            MatroskaElementRegistry.MatroskaBlockDuration,
             new BufferElementContent(duration)
         );
 
@@ -259,41 +294,21 @@ public class MatroskaVideo
         var flags = VInt.FromData(0);
         var text = Encoding.UTF8.GetBytes(segment.Text);
 
-        var blockSize = VInt.FromData(
-            trackNumber.Width + 
-            relativeTimestamp.Width + 
-            flags.Width + 
-            text.Length
-        );
-
         // https://matroska.sourceforge.net/technical/specs/index.html#block_structure
-        var contentStream = new MemoryStream(new byte[blockSize.Data]);
+        var contentStream = new MemoryStream();
         contentStream.Write(trackNumber.AsBytes());
         contentStream.Write(relativeTimestamp.AsBytes());
         contentStream.Write(flags.AsBytes());
         contentStream.Write(text);
 
-        var blockElement = new Element(
-            new ElementId(MatroskaElementRegistry.MatroskaBlock.Id!.Value),
-            blockSize,
-            ElementType.Binary,
-            0,
-            new BufferElementContent(contentStream)
-        );
+        var blockElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaBlock, contentStream);
 
-        var groupSize = BitMask.SizeOf(blockElement) + BitMask.SizeOf(blockDurationElement);
-
-        var blockGroupElement = new Element(
-            new ElementId(MatroskaElementRegistry.MatroskaBlockGroup.Id!.Value),
-            VInt.FromData(groupSize),
-            ElementType.Master,
-            0,
-            NoElementContent.Instance
-        );
+        var blockGroupElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaBlockGroup, new[]
+        {
+            blockElement,
+            blockDurationElement
+        });
         
-        blockElement.SetParent(blockGroupElement);
-        blockDurationElement.SetParent(blockGroupElement);
-
         return blockGroupElement;
     }
     

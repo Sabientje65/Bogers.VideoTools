@@ -103,7 +103,7 @@ public class EBMLElementReader
             width,
             type,
             position,
-            new StreamChunkContentReader(_stream, contentPosition, width.Data),
+            new StreamChunkElementContent(_stream, contentPosition, width.Data),
             parent
         );
     }

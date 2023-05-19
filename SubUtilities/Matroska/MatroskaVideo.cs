@@ -18,57 +18,64 @@ namespace SubUtilities.Matroska;
 // by means of assigning a static byterange to at least 'stream'/'file' based datasources, we also remove the need
 // for having to keep track of new element positions when shuffling elements around (adding new elements etc)
 
-public interface IContentReader // IElementContent?
+public interface IElementContent // IElementContent?
 {
+    long Size { get; }
+    
     Stream ReadAsStream();
 }
 
-// public static class ContentReaderExtensions
-// {
-//     public static VInt ReadVInt(this IContentReader contentReader)
-//     {
-//         
-//     }
-//
-//     public static byte[] ReadBytes(this IContentReader contentReader)
-//     {
-//         
-//     }
-// }
-
-public class NoContentReader : IContentReader
+public static class ElementContentExtensions
 {
-    public static readonly NoContentReader Instance = new NoContentReader();
-    
+    public static byte[] ReadAsBytes(this IElementContent content)
+    {
+        var bytes = new byte[content.Size];
+        _ = content.ReadAsStream().Read(bytes);
+        return bytes;
+    }
+}
+
+public class NoElementContent : IElementContent
+{
+    public static readonly NoElementContent Instance = new NoElementContent();
+
+    public long Size => 0;
     public Stream ReadAsStream() => Stream.Null;
 }
 
-public class BufferContentReader : IContentReader
+public class BufferElementContent : IElementContent
 {
     private readonly MemoryStream _buffer;
 
-    public BufferContentReader(long value) => _buffer = new MemoryStream(BitConverter.GetBytes(value));
+    public BufferElementContent(long value) => _buffer = new MemoryStream(BitConverter.GetBytes(value));
     
-    public BufferContentReader(byte[] buffer) => _buffer = new MemoryStream(buffer);
+    public BufferElementContent(byte[] buffer) => _buffer = new MemoryStream(buffer);
     
-    public BufferContentReader(MemoryStream buffer) => _buffer = buffer;
-    
-    public Stream ReadAsStream() => _buffer;
+    public BufferElementContent(MemoryStream buffer) => _buffer = buffer;
+
+    public long Size => _buffer.Length;
+
+    public Stream ReadAsStream()
+    {
+        _buffer.Seek(0, SeekOrigin.Begin);
+        return _buffer;
+    }
 }
 
-public class StreamChunkContentReader : IContentReader
+public class StreamChunkElementContent : IElementContent
 {
     private readonly Stream _stream;
     private readonly long _position;
     private readonly long _length;
     
-    public StreamChunkContentReader(Stream stream, long position, long length)
+    public StreamChunkElementContent(Stream stream, long position, long length)
     {
         _stream = stream;
         _position = position;
         _length = length;
     }
 
+    public long Size => _length;
     public Stream ReadAsStream() => new StreamChunk(_stream, _position, _length);
 
     private class StreamChunk : Stream
@@ -184,6 +191,26 @@ public class MatroskaVideo
             // step 1: reading the header
             // an ebml document always starts with a header containing the following 4 bytes: 0x1A45DFA3
             var masterElement = reader.ReadRootElement();
+            foreach (var element in masterElement.Children)
+            {
+                object elementContent = element.Type switch
+                {
+                    ElementType.SignedInteger => element.ReadIntContent(),
+                    ElementType.UnsignedInteger => element.ReadUIntContent(),
+                    
+                    ElementType.ASCIIString => element.ReadStringContent(),
+                    ElementType.Utf8String => element.ReadStringContent(),
+                    // ElementType.Float => expr,
+                    // ElementType.Date => expr,
+                    // ElementType.Master => expr,
+                    // ElementType.Binary => expr,
+                    // ElementType.Unknown => expr,
+                    _ => String.Empty
+                }; 
+                
+                Console.WriteLine($"{WellKnownEBMLIds.Lookup[element.Id]}: {elementContent}");
+            }
+            
             // ConsumeMasterElement(masterElement);
             
             if(masterElement.Id != WellKnownEBMLIds.EBML) throw new MalformedDocumentException("Expected master elementId to be: 0x1A45DFA3");
@@ -224,7 +251,7 @@ public class MatroskaVideo
             durationWidth,
             ElementType.UnsignedInteger,
             0,
-            new BufferContentReader(duration)
+            new BufferElementContent(duration)
         );
 
         var trackNumber = VInt.FromData(track);
@@ -251,7 +278,7 @@ public class MatroskaVideo
             blockSize,
             ElementType.Binary,
             0,
-            new BufferContentReader(contentStream)
+            new BufferElementContent(contentStream)
         );
 
         var groupSize = BitMask.SizeOf(blockElement) + BitMask.SizeOf(blockDurationElement);
@@ -261,7 +288,7 @@ public class MatroskaVideo
             VInt.FromData(groupSize),
             ElementType.Master,
             0,
-            NoContentReader.Instance
+            NoElementContent.Instance
         );
         
         blockElement.SetParent(blockGroupElement);
@@ -296,7 +323,7 @@ public class MatroskaVideo
 
             target.Write(element.Id.AsVInt().AsBytes());
             target.Write(element.Size.AsBytes());
-            var contentReader = element.Type == ElementType.Master ? NoContentReader.Instance : element.ContentReader;
+            var contentReader = element.Type == ElementType.Master ? NoElementContent.Instance : element.Content;
             contentReader.ReadAsStream().CopyTo(target);
         }
     }

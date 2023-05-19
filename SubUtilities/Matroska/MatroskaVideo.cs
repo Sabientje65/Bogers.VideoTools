@@ -48,7 +48,8 @@ public class BufferElementContent : IElementContent
     private readonly MemoryStream _buffer;
 
     public BufferElementContent(long value) => _buffer = new MemoryStream(BitConverter.GetBytes(value));
-    
+    public BufferElementContent(ulong value) => _buffer = new MemoryStream(BitConverter.GetBytes(value));
+
     public BufferElementContent(byte[] buffer) => _buffer = new MemoryStream(buffer);
     
     public BufferElementContent(MemoryStream buffer) => _buffer = buffer;
@@ -217,6 +218,7 @@ public class MatroskaVideo
             
             // step 2: read our segment
             var segment = reader.ReadRootElement();
+            CreateSubtitleTrack(segment, "jp", "Custom Track");
             // ConsumeMasterElement(segment);
 
             WriteDocument(new[] { masterElement, segment });
@@ -252,7 +254,9 @@ public class MatroskaVideo
             );
         }
 
-        public static Element CreateElement( IMatroskaElement definition, MemoryStream contentBuffer ) => CreateElement(definition, new BufferElementContent(contentBuffer));
+        public static Element CreateElement( IMatroskaElement definition, MemoryStream content ) => CreateElement(definition, new BufferElementContent(content));
+        public static Element CreateElement( IMatroskaElement definition, byte[] content ) => CreateElement(definition, new BufferElementContent(content));
+        public static Element CreateElement( IMatroskaElement definition, ulong content ) => CreateElement(definition, new BufferElementContent(content));
 
         public static Element CreateElement( IMatroskaElement definition, Element[] children )
         {
@@ -270,6 +274,69 @@ public class MatroskaVideo
 
             return element;
         }
+    }
+
+    public class SubTitleTrack
+    {
+        public Element Element { get; }
+
+        public SubTitleTrack(Element element)
+        {
+            Element = element;
+        }
+
+        public ulong TrackNumber => FindChild(MatroskaElementRegistry.MatroskaTrackNumber).ReadUIntContent();
+
+        private Element FindChild(IMatroskaElement definition) => Element.Children
+            .Single(x => x.Id == MatroskaElementRegistry.MatroskaTrackNumber.Id);
+    }
+
+    private static Element CreateSubtitleTrack(Element segment, string language, string name)
+    {
+        var tracksElement = segment.Children.First(
+            x => x.Id == MatroskaElementRegistry.MatroskaTracks.Id    
+        );
+
+        // todo: automatically add tracks element
+        if (tracksElement == default) throw new Exception("Expected tracks element!");
+        
+        // continue from last number
+        var trackEntries = tracksElement.Children
+            .Where(x => x.Id == MatroskaElementRegistry.MatroskaTrackEntry.Id)
+            .ToArray();
+        
+        var highestTrackNumber = trackEntries
+            .Select(x => x.Children.SingleOrDefault(y => y.Id == MatroskaElementRegistry.MatroskaTrackNumber.Id))
+            .Max(x => x?.ReadUIntContent() ?? 0);
+
+        var trackNumber = highestTrackNumber + 1;
+        var trackId = new byte[4];
+        Random.Shared.NextBytes(trackId);
+
+        var trackNumberElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaTrackNumber, trackNumber);
+        var trackIdElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaTrackUID, trackId);
+        var trackTypeElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaTrackType, 0x11); // subtitle
+        var defaultTrackElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaFlagDefault, 0);
+        var lacingElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaFlagLacing, 0);
+        var codecElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaCodecID, Encoding.ASCII.GetBytes("S_TEXT/UTF8"));
+        var languageElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaLanguage, Encoding.ASCII.GetBytes(language));
+        var nameElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaName, Encoding.UTF8.GetBytes(name));
+
+        var trackElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaTrackEntry, new[]
+        {
+            trackNumberElement,
+            trackIdElement,
+            trackTypeElement,
+            defaultTrackElement,
+            lacingElement,
+            codecElement,
+            languageElement,
+            nameElement
+        });
+        
+        // trackElement.SetParent(tracksElement);
+
+        return trackElement;
     }
     
     public Element CreateSubtitleBlock(

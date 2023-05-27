@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Text;
 using SubUtilities.Generated;
 
@@ -43,7 +42,7 @@ public class Element
         SetParent(parent);
     }
 
-    public readonly IElementContent Content;
+    public IElementContent Content;
 
     public Element? Parent => _parent;
 
@@ -51,7 +50,7 @@ public class Element
 
     public readonly IMatroskaElement? MatroskaElement;
     
-    public readonly long Position;
+    public long Position;
 
     public readonly long NextSibling;
 

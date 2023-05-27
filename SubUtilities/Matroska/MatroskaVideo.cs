@@ -79,6 +79,8 @@ public class StreamChunkElementContent : IElementContent
     private readonly Stream _stream;
     private readonly long _position;
     private readonly long _length;
+
+    public long Position => _position;
     
     public StreamChunkElementContent(Stream stream, long position, long length)
     {
@@ -229,11 +231,15 @@ public class MatroskaVideo
             
             // step 2: read our segment
             var segment = reader.ReadRootElement();
-            var track = CreateSubtitleTrack(segment, "nld", "Custom Track");
-
+            var segmentWrapper = MatroskaElementWrapper.CreateForTree(segment);
+            
+            var trackElement = CreateSubtitleTrack(segmentWrapper, "nld", "Custom Track");
+            var trackPosition = trackElement.FindSingle(MatroskaElementRegistry.MatroskaTrackNumber.Id).EBMLElement
+                .ReadUIntContent();
+            
             foreach (var subSegment in srt.Segments)
             {
-                CreateSubtitleBlock(segment, subSegment, track.TrackNumber);
+                CreateSubtitleBlock(segmentWrapper, subSegment, trackPosition);
             }
             
             // ConsumeMasterElement(segment);
@@ -251,6 +257,178 @@ public class MatroskaVideo
         {
             _stream.Dispose();
         }
+    }
+
+    public class SizeChangedArgs : EventArgs
+    {
+        public long SizeChange { get; }
+        
+        public SizeChangedArgs(long sizeChange)
+        {
+            SizeChange = sizeChange;
+        }
+    }
+
+    // public delegate void SizeChangedEventHandler(object sender, SizeChangedArgs args);
+    
+    public class MatroskaElementWrapper
+    {
+        private readonly Element _ebmlElement;
+
+        public Element EBMLElement => _ebmlElement;
+
+        private readonly List<MatroskaElementWrapper> _children = new List<MatroskaElementWrapper>();
+
+        private MatroskaElementWrapper? _parent;
+
+        public MatroskaElementWrapper(Element ebmlElement)
+        {
+            _ebmlElement = ebmlElement;
+        }
+
+        public EventHandler<SizeChangedArgs> OnSizeChanged;
+
+        public MatroskaElementWrapper Add(Element ebmlElement)
+        {
+            var wrapper = new MatroskaElementWrapper(ebmlElement);
+            Add(wrapper);
+            return wrapper;
+        }
+
+        private void Add(MatroskaElementWrapper wrapper, bool isNew)
+        {
+            wrapper._ebmlElement.SetParent(_ebmlElement);
+            _children.Add(wrapper);
+            wrapper._parent = this;
+            
+            wrapper.OnSizeChanged += (sender, args) =>
+            {
+                _ebmlElement.Size += VInt.FromData(args.SizeChange);
+                
+                // also reposition siblings
+                FindNextSibling()?.Reposition(args.SizeChange);
+                OnSizeChanged?.Invoke(sender, args);
+
+                if (_ebmlElement.Id != MatroskaElementRegistry.MatroskaSegment.Id) return;
+
+                // if any of our seekheads changes size, we should trigger a re-index at the end
+                // var shouldReindex = false;
+                
+                // for segments, we also want to update our seekhead positions
+                foreach (var seekPosition in FindMultiple(MatroskaElementRegistry.MatroskaSeekPosition.Id))
+                {
+                    var currentPosition = seekPosition._ebmlElement.ReadUIntContent();
+                    var newPosition = currentPosition + (ulong)args.SizeChange;
+                    var newContent = new BufferElementContent(newPosition);
+                    // shouldReindex = shouldReindex || seekPosition._ebmlElement.Content.Size != newContent.Size;
+                    seekPosition._ebmlElement.Content = newContent;
+                    
+                }
+            };
+
+            if (isNew)
+            {
+                var previous = wrapper.FindPreviousSibling();
+                if (previous != null)
+                {
+                    wrapper.Reposition(
+                        previous.EBMLElement.NextSibling
+                    );                    
+                }
+
+                
+                wrapper.OnSizeChanged?.Invoke(this, new SizeChangedArgs(wrapper._ebmlElement.HeaderSize + wrapper._ebmlElement.Size.Data));    
+            }
+        }
+
+        public void Add(MatroskaElementWrapper wrapper) => Add(wrapper, true);
+        
+        public void Reposition(long relativeOffset)
+        {
+            _ebmlElement.Position += relativeOffset;
+            foreach (var child in _children) child.Reposition(relativeOffset);
+            FindNextSibling()?.Reposition(relativeOffset);
+        }
+        
+        private MatroskaElementWrapper? FindPreviousSibling()
+        {
+            if (_parent == null) return null;
+            var selfIdx = _parent._children.IndexOf(this);
+            if (selfIdx - 1 < 0) return null;
+            
+            return _parent._children.Skip(selfIdx - 1).FirstOrDefault();
+        } 
+
+        private MatroskaElementWrapper? FindNextSibling()
+        {
+            if (_parent == null) return null;
+            var selfIdx = _parent._children.IndexOf(this);
+            return _parent._children.Skip(selfIdx + 1).FirstOrDefault();
+        }
+
+        public MatroskaElementWrapper? FindSingle(long? id) => FindMultiple(id).SingleOrDefault();
+        
+        public IEnumerable<MatroskaElementWrapper> FindMultiple(long? id)
+        {
+            // depth first traversal
+            var remaining = new Stack<MatroskaElementWrapper>(_children);
+
+            while (remaining.Any())
+            {
+                var current = remaining.Pop();
+                if (current._ebmlElement.Id == new ElementId(id.Value)) yield return current;
+                foreach (var child in current._children) remaining.Push(child);
+            }
+        }
+
+        public static MatroskaElementWrapper CreateForTree(Element root)
+        {
+            var wrapper = new MatroskaElementWrapper(root);
+
+            foreach (var child in root.Children.ToArray())
+            {
+                wrapper.Add(CreateForTree(child), false);
+            }
+            
+            return wrapper;
+        }
+    }
+    
+    public class MatroskaSegment
+    {
+        private MatroskaSeekHead _seekHead;
+
+        private List<MatroskaTrack> _tracks = new List<MatroskaTrack>();
+
+        public long Size { get; set; }
+
+        public void AddTrack(MatroskaTrack track)
+        {
+        }
+    }
+
+    // public class MatroskaSeekHead
+    // {
+    //     public IEnumerable<MatroskaSeekEntry> Entries { get; }
+    // }
+
+    // public class MatroskaSeekEntry
+    // {
+    //     
+    //     
+    //     public long GetSeekPosition()
+    //     {
+    //         
+    //     }
+    //     
+    //     public void SetSeekPosition()
+    //     {
+    //         
+    //     }
+    // }
+    //
+    public class MatroskaTrack
+    {
     }
 
     public class ElementFactory
@@ -287,7 +465,14 @@ public class MatroskaVideo
                 new NoElementContent()
             );
 
-            foreach (var child in children) child.SetParent(element);
+            long nextPos = element.HeaderSize + 1;
+
+            foreach (var child in children)
+            {
+                child.Position = nextPos;
+                nextPos += BitMask.SizeOf(child);
+                child.SetParent(element);
+            }
 
             return element;
         }
@@ -306,6 +491,56 @@ public class MatroskaVideo
 
         private Element FindChild(IMatroskaElement definition) => Element.Children
             .Single(x => x.Id == MatroskaElementRegistry.MatroskaTrackNumber.Id);
+    }
+    
+    private static MatroskaElementWrapper CreateSubtitleTrack(MatroskaElementWrapper segmentWrapper, string language, string name)
+    {
+        var tracksElement = segmentWrapper.FindSingle(MatroskaElementRegistry.MatroskaTracks.Id);
+
+        // todo: automatically add tracks element
+        if (tracksElement == default) throw new Exception("Expected tracks element!");
+        
+        // continue from last number
+        var highestTrackNumber = tracksElement.FindMultiple(MatroskaElementRegistry.MatroskaTrackNumber.Id)
+            .Max(x => x.EBMLElement.ReadUIntContent());
+        
+        // var highestTrackNumber = trackEntries
+        //     .Select(x => x.Children.SingleOrDefault(y => y.Id == MatroskaElementRegistry.MatroskaTrackNumber.Id))
+        //     .Max(x => x?.ReadUIntContent() ?? 0);
+
+        var trackNumber = highestTrackNumber + 1;
+        var trackId = new byte[4];
+        Random.Shared.NextBytes(trackId);
+
+        var trackNumberElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaTrackNumber, trackNumber);
+        var trackIdElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaTrackUID, trackId);
+        var trackTypeElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaTrackType, 0x11); // subtitle
+        var defaultTrackElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaFlagDefault, 0);
+        var lacingElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaFlagLacing, 0);
+        var codecElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaCodecID, Encoding.ASCII.GetBytes("S_TEXT/UTF8"));
+        var languageElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaLanguage, Encoding.ASCII.GetBytes(language));
+        var nameElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaName, Encoding.UTF8.GetBytes(name));
+
+        var trackElement = MatroskaElementWrapper.CreateForTree(ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaTrackEntry, new[]
+        {
+            trackNumberElement,
+            trackIdElement,
+            trackTypeElement,
+            defaultTrackElement,
+            lacingElement,
+            codecElement,
+            languageElement,
+            nameElement
+        }));
+
+        tracksElement.Add(trackElement);
+
+        return trackElement;
+
+        // trackElement.SetParent(tracksElement);
+        // tracksElement.Size += trackElement.Size;
+
+        // return new SubTitleTrack(trackElement);
     }
 
     private static SubTitleTrack CreateSubtitleTrack(Element segment, string language, string name)
@@ -358,7 +593,7 @@ public class MatroskaVideo
     }
     
     private static void CreateSubtitleBlock(
-        Element segment,
+        MatroskaElementWrapper segment,
         SrtSegment srtSegment, 
         ulong track
     )
@@ -367,13 +602,10 @@ public class MatroskaVideo
         // https://matroska.sourceforge.net/technical/specs/index.html#TimecodeScale
         // todo: account for different timescales (see segment info -> timestamp scale)
 
-        var clustersWithTimestamps = segment.Children
-            .Where(x => x.Id == MatroskaElementRegistry.MatroskaCluster.Id)
+        var clustersWithTimestamps = segment.FindMultiple(MatroskaElementRegistry.MatroskaCluster.Id)
             .Select(x =>
             {
-                var ts = x.Children
-                    .SingleOrDefault(y => y.Id == MatroskaElementRegistry.MatroskaTimestamp.Id)?
-                    .ReadUIntContent();
+                var ts = x.FindSingle(MatroskaElementRegistry.MatroskaTimestamp.Id)?.EBMLElement.ReadUIntContent();
                 
                 return new
                 {
@@ -390,6 +622,8 @@ public class MatroskaVideo
             .LastOrDefault();
 
         if (cluster == null) return;
+        var clusterIdx = segment.FindMultiple(MatroskaElementRegistry.MatroskaCluster.Id).ToList()
+            .IndexOf(cluster.Cluster);
 
         var duration = (long)(srtSegment.TimeRange.To - srtSegment.TimeRange.From).TotalMilliseconds;
 
@@ -418,8 +652,8 @@ public class MatroskaVideo
             blockElement,
             blockDurationElement
         });
-        
-        blockGroupElement.SetParent(cluster.Cluster);
+
+        cluster.Cluster.Add(blockGroupElement);
     }
     
     private static SrtFile ReadSrt()

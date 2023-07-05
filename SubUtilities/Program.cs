@@ -3,9 +3,9 @@ using System.Text;
 using SubUtilities;
 using SubUtilities.Matroska;
 
-MatroskaVideo.Test();
-
-return;
+// MatroskaVideo.Test();
+//
+// return;
 
 // sub-utils offset update -5s
 var rootCmd = new RootCommand();
@@ -49,7 +49,7 @@ subtitlesCmd.SetHandler(async ctx =>
     
     pipeline.AddTransformation(new ScanForSrtFilesAction(source));
     if(offset.HasValue) pipeline.AddTransformation(new OffsetAction(offset.Value));
-    if (automatch) pipeline.AddTransformation(new AutoMatchAction());
+    if (automatch) pipeline.AddTransformation(new AutoMatchAction()); // todo: add support for matchmode
     pipeline.AddTransformation(new WriteToFileAction(output));
 
     // await using var srtFileStream = file.Open(FileMode.Open, FileAccess.ReadWrite);

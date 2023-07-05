@@ -4,16 +4,27 @@ namespace SubUtilities;
 
 public class AutoMatchAction : IAction
 {
-    private readonly IEpisodeNumberExtractor[] _episodeNumberExtractors = {
-        new RegexEpisodeNumberExtractor(new Regex(@"E(\d+)")),
-        new RegexEpisodeNumberExtractor(new Regex(@"(\d+)"))
-    };
+    private readonly IEpisodeNumberExtractor[] _episodeNumberExtractors;
     
     private readonly IEpisodeMatcher[] _episodeMatchers = {
         new PrefixEpisodeMatcher("E"),
         new PrefixEpisodeMatcher(" - ")
     };
-    
+
+    public AutoMatchAction(MatchMode matchMode = MatchMode.Default)
+    {
+        // we should attempt to infer matchmode by looking at filename shapes (S... = season based, E... = episode based)
+        _episodeNumberExtractors = new []{
+            new RegexEpisodeNumberExtractor(new Regex(@"E(\d+)")),
+            new RegexEpisodeNumberExtractor(new Regex(@"(\d+)"))
+        };
+
+        if (matchMode == MatchMode.MultiSeason)
+        {
+            _episodeNumberExtractors = _episodeNumberExtractors.Select(x => new MultiSeasonEpisodeNumberExtractor(x)).ToArray();
+        }
+    }
+
     public Task Apply(ActionContext context)
     {
         foreach (var srtFile in context.SrtFiles)
@@ -49,6 +60,25 @@ public class AutoMatchAction : IAction
         string Extract(SrtFile srt);
 
         bool CanExtract(SrtFile srt);
+    }
+
+    private class MultiSeasonEpisodeNumberExtractor : IEpisodeNumberExtractor
+    {
+        private readonly IEpisodeNumberExtractor _matcher;
+        
+        // when we're dealing with subtitles for multiple seasons, implicitly track episode numbers by simply tracking the absolute amount of episodes matched
+        // we're assuming matches will be made in order with no gaps being present
+        private int _absoluteEpisodeNumber;
+
+        public MultiSeasonEpisodeNumberExtractor(IEpisodeNumberExtractor matcher) => _matcher = matcher;
+
+        public string Extract(SrtFile srt)
+        {
+
+            return (++_absoluteEpisodeNumber).ToString();
+        }
+
+        public bool CanExtract(SrtFile srt) => _matcher.CanExtract(srt);
     }
 
     private class RegexEpisodeNumberExtractor : IEpisodeNumberExtractor
@@ -90,5 +120,18 @@ public class AutoMatchAction : IAction
             var prefix = _prefix + episode;
             return Path.GetFileName(file).Contains(prefix);
         }
+    }
+    
+    public enum MatchMode
+    {
+        /// <summary>
+        /// Default, simply match by episode number
+        /// </summary>
+        Default,
+        
+        /// <summary>
+        /// SRTs for multiple seasons, video files for only a single season
+        /// </summary>
+        MultiSeason
     }
 }

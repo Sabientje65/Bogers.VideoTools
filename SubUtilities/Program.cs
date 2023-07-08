@@ -33,10 +33,14 @@ var fileMatcherArg = new Option<bool>(name: "--automatch", description: "Try to 
 
 var fileArg = new Option<FileInfo>(name: "--file");
 
+var languageTagArg = new Option<string>(name: "--language");
+
 // create dto per command? subtitlesdto { [Argument("--offset")] TimeSpan offset, etc.. } ?
 subtitlesCmd.Add(offsetArg);
 subtitlesCmd.Add(fileArg);
 subtitlesCmd.Add(fileMatcherArg);
+subtitlesCmd.Add(languageTagArg);
+
 
 subtitlesCmd.SetHandler(async ctx =>
 {
@@ -44,12 +48,14 @@ subtitlesCmd.SetHandler(async ctx =>
     var source = ctx.ParseResult.GetValueForOption(fileArg)?.FullName ?? Environment.CurrentDirectory;
     var output = ctx.ParseResult.GetValueForOption(outputArg) ?? Environment.CurrentDirectory;
     var automatch = ctx.ParseResult.GetValueForOption(fileMatcherArg);
+    var languageTag = ctx.ParseResult.GetValueForOption(languageTagArg);
     
     var pipeline = new TransformationPipeline();
     
     pipeline.AddTransformation(new ScanForSrtFilesAction(source));
     if(offset.HasValue) pipeline.AddTransformation(new OffsetAction(offset.Value));
     if (automatch) pipeline.AddTransformation(new AutoMatchAction()); // todo: add support for matchmode
+    if (!String.IsNullOrEmpty(languageTag)) pipeline.AddTransformation(new AddLanguageTagAction(languageTag));
     pipeline.AddTransformation(new WriteToFileAction(output));
 
     // await using var srtFileStream = file.Open(FileMode.Open, FileAccess.ReadWrite);

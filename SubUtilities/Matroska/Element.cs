@@ -6,6 +6,16 @@ namespace SubUtilities.Matroska;
 
 // abstract class? -> embed metadata, CanHaveChildElements, ShouldConsume, etc, etc.
 
+public struct SizeChangedArgs
+{
+    public long SizeChange { get; }
+        
+    public SizeChangedArgs(long sizeChange)
+    {
+        SizeChange = sizeChange;
+    }
+}
+
 [DebuggerDisplay("{DebuggerView}")]
 public class Element
 {
@@ -69,15 +79,81 @@ public class Element
     public readonly bool IsVoid;
 
     public string DebuggerView => $"Position: {DebugUtilities.DumpHex(Position)}, Type: {MatroskaElement?.GetType()?.Name}, Next sibling: {DebugUtilities.DumpHex(NextSibling)}";
+    
+    // public EventHandler<SizeChangedArgs> OnSizeChanged;
 
-    public void SetParent(Element? parent)
+    private void SetParent(Element? parent)
     {
         _parent?._children.Remove(this);
         parent?._children.Add(this);
         _parent = parent;
     }
-
     
+    public void Reposition(long relativeOffset)
+    {
+        Position += relativeOffset;
+        foreach (var child in _children) child.Reposition(relativeOffset);
+        FindNextSibling()?.Reposition(relativeOffset);
+    }
+        
+    private Element? FindPreviousSibling()
+    {
+        if (_parent == null) return null;
+        var selfIdx = _parent._children.IndexOf(this);
+        if (selfIdx - 1 < 0) return null;
+            
+        return _parent._children.Skip(selfIdx - 1).FirstOrDefault();
+    } 
+
+    private Element? FindNextSibling()
+    {
+        if (_parent == null) return null;
+        var selfIdx = _parent._children.IndexOf(this);
+        return _parent._children.Skip(selfIdx + 1).FirstOrDefault();
+    }
+
+    public void Add(Element childElement)
+    {
+        var isFromDifferentDocument = FindRoot() != childElement.FindRoot();
+        
+        Add(childElement, isFromDifferentDocument);
+    }
+    
+    private void Add(Element childElement, bool isNew)
+    {
+        childElement.SetParent(this);
+
+        if (isNew)
+        {
+            var size = BitMask.SizeOf(childElement);
+            var previousSibling = childElement.FindPreviousSibling();
+
+            if (previousSibling == null) childElement.Position = HeaderSize + 1;
+            else childElement.Position = previousSibling.Position + BitMask.SizeOf(previousSibling) + 1;
+            
+            childElement.FindNextSibling()?.Reposition(size);
+            OnSizeChanged(new SizeChangedArgs(childElement.HeaderSize + childElement.Size.Data));    
+        }
+    }
+
+    public Element? FindSingle(IMatroskaElement elementType) => FindMultiple(elementType).SingleOrDefault();
+
+    public IEnumerable<Element> FindMultiple(IMatroskaElement elementType)
+    {
+        // depth first traversal
+        var remaining = new Stack<Element>(_children);
+
+        while (remaining.Any())
+        {
+            var current = remaining.Pop();
+            if (current.Id == new ElementId(elementType.Id!.Value)) yield return current;
+            foreach (var child in current._children) remaining.Push(child);
+        }
+    }
+
+    private Element FindRoot() => _parent?.FindRoot() ?? _parent ?? this;
+
+
     // should content reading be part of IElementContent? Maybe even just via a set of extension methods?
     public string ReadStringContent() => Type switch
     {
@@ -121,5 +197,42 @@ public class Element
         uint value = 0;
         foreach (var octet in octets) value = (value << 8) | octet;
         return value;
+    }
+
+    private VInt CalculateSize()
+    {
+        long size = HeaderSize;
+
+        // either content with a fixed size, or a parent with a dynamic size based on children
+        if (!_children.Any()) size += this.Content.Size;
+        else size += _children.Sum(c => c.CalculateSize().Data);
+        
+        return VInt.FromData(size);
+
+    }
+
+    private void OnSizeChanged(SizeChangedArgs args)
+    {
+        Size += VInt.FromData(args.SizeChange);
+                
+        // reposition siblings, since we've increased in size
+        FindNextSibling()?.Reposition(args.SizeChange);
+        _parent?.OnSizeChanged(args);
+
+        if (Id != MatroskaElementRegistry.MatroskaSegment.Id) return;
+
+        // if any of our seekheads changes size, we should trigger a re-index at the end
+        // var shouldReindex = false;
+                
+        // for segments, we also want to update our seekhead positions
+        foreach (var seekPosition in FindMultiple(MatroskaElementRegistry.MatroskaSeekPosition))
+        {
+            var currentPosition = seekPosition.ReadUIntContent();
+            var newPosition = currentPosition + (ulong)args.SizeChange;
+            var newContent = new BufferElementContent(newPosition);
+            // shouldReindex = shouldReindex || seekPosition._ebmlElement.Content.Size != newContent.Size;
+            seekPosition.Content = newContent;
+                    
+        }
     }
 }

@@ -13,8 +13,8 @@ public struct TimeRange
     
     public static TimeRange operator +(TimeRange range, TimeSpan offset) => new TimeRange
     {
-        From = range.From - offset,
-        To = range.To - offset
+        From = range.From + offset,
+        To = range.To + offset
     };
 }
 

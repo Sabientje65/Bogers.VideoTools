@@ -8,7 +8,8 @@ public class AutoMatchAction : IAction
     
     private readonly IEpisodeMatcher[] _episodeMatchers = {
         new PrefixEpisodeMatcher("E"),
-        new PrefixEpisodeMatcher(" - ")
+        new PrefixEpisodeMatcher(" - "),
+        new PrefixEpisodeMatcher(" ")
     };
 
     public AutoMatchAction(MatchMode matchMode = MatchMode.Default)

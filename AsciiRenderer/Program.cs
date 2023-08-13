@@ -1,16 +1,21 @@
 ﻿
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Text;
 
 // extract to own class/folder
 // https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types
+// Explanation behind method suffixes: https://www.reddit.com/r/csharp/comments/1448a72/win32_api_suffixes/
+
 using HWND = System.IntPtr;
 using DWORD = System.UInt32;
 using LPCVOID = System.Runtime.InteropServices.HandleRef;
 using LPSTR = System.Text.StringBuilder;
+using LPCSTR = System.String;
 using va_list = System.IntPtr;
 
+[SupportedOSPlatform("windows")]
 public class Program
 {
     public static void Main()
@@ -55,11 +60,27 @@ public class Program
         
     }
 
+    [SupportedOSPlatform("windows")]
     public class Window
     {
-        
-        
-        public static HWND GetMainWindowHandle() => Process.GetCurrentProcess().MainWindowHandle;
+
+        public static HWND GetMainWindowHandle()
+        {
+            // Apparently there's no 'easy' way to obtain a handle to the current window
+            // as recommended as per microsoft documentation, assign a temp name -> perform lookup by name
+            // https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/obtain-console-window-handle
+
+            var originalTitle = Console.Title;
+            Console.Title = $"_window - {DateTime.UtcNow.Ticks}";
+            
+            // recommended to wait a few ms for windows to update the window's title
+            Thread.Sleep(40);
+
+            var handle = FindWindowA(null, Console.Title);
+            Console.Title = originalTitle;
+
+            return handle;
+        }
 
         public static void HideScrollbar()
         {
@@ -68,17 +89,30 @@ public class Program
             if (!ok)
             {
                 var errorCode = GetLastError();
-                var messageBuffer = new StringBuilder();
+                var message = GetErrorMessage(errorCode);
+                if (String.IsNullOrEmpty(message)) message = $"Failed with errorCode: {errorCode}";
 
-                errorCode = FormatMessage(
-                    DWFlags.FORMAT_MESSAGE_ALLOCATE_BUFFER,
-                    new HandleRef(null, IntPtr.Zero),
-                    errorCode,
-                    messageBuffer,
-                    (DWORD)messageBuffer.MaxCapacity,
-                    IntPtr.Zero
-                );
+                throw new Exception(message)
+                {
+                    Data = { { "errorCode", errorCode } }
+                };
             }
+        }
+
+        private static string? GetErrorMessage(DWORD errorCode)
+        {
+            FormatMessage(
+                DWFlags.FORMAT_MESSAGE_ALLOCATE_BUFFER | DWFlags.FORMAT_MESSAGE_FROM_SYSTEM | DWFlags.FORMAT_MESSAGE_IGNORE_INSERTS,
+                new HandleRef(null, IntPtr.Zero),
+                errorCode,
+                0,
+                out var messageBuffer,
+                1024,
+                IntPtr.Zero
+            );
+
+
+            return messageBuffer?.ToString();
         }
         
         /// <summary>
@@ -87,10 +121,21 @@ public class Program
         /// <param name="hWnd">Window handle</param>
         /// <param name="wBar">Targetted scrollbars</param>
         /// <param name="bShow">Whether to show or hide</param>
+        /// <see href="https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-showscrollbar"/>
         /// <returns>Whether the call succeeded, a succeeding call will yield a non-zero value</returns>
         [DllImport("user32.dll", SetLastError = true)] 
         public static extern bool ShowScrollBar( HWND hWnd, int wBar, bool bShow );
 
+        /// <summary>
+        /// Find the handle associated with the given window
+        /// </summary>
+        /// <param name="lpClassName">Optional, class name or class atom, has to have been registered by a call to RegisterClass or RegisterClassEx</param>
+        /// <param name="lpWindowName">Optional, window title, when nothing is provided all windows will match</param>
+        /// <see href="https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-findwindowa"/>
+        /// <returns>Window handle, if the call fails, NULL is returned</returns>
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern HWND FindWindowA(LPCSTR lpClassName, LPCSTR lpWindowName);
+        
         /// <summary>
         /// Get the most recent errorcode set for the current thread
         ///
@@ -102,7 +147,7 @@ public class Program
         public static extern DWORD GetLastError();
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern DWORD FormatMessage( DWORD dwFlags,  LPCVOID lpSource, DWORD dwMessageId, LPSTR lpBuffer, DWORD nSize, va_list arguments );
+        public static extern DWORD FormatMessage( DWORD dwFlags,  LPCVOID lpSource, DWORD dwMessageId, DWORD dwLanguageId, out LPSTR lpBuffer, DWORD nSize, va_list arguments );
 
         public static class DWFlags
         {
@@ -115,31 +160,24 @@ public class Program
         }
         
         // https://www.foxite.com/archives/scrollbars-on-form-disable-0000421959.htm
-        public enum WhichScrollbar
+        public static class WhichScrollbar
         {
             /// <summary>
             /// Both standard horizontal and vertical scrollbars
             /// </summary>
-            SB_BOTH = 3,
-            
+            public const DWORD SB_BOTH = 3;
+
             /// <summary>
             /// Standard horizontal scrollbar
             /// </summary>
-            SB_HORZ = 0,
-            
+            public const DWORD SB_HORZ = 0;
+
             /// <summary>
             /// Standard vertical scrollbar
             /// </summary>
-            SB_VERT = 1
+            public const DWORD SB_VERT = 1;
         }
         
-    }
-    
-    public class WinApi
-    {
-        
-        
-
     }
 
     private readonly struct Dimensions

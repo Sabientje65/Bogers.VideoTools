@@ -43,6 +43,23 @@ public class SrtFile
         }
     }
 
+    /// <summary>
+    /// Read an SRT file from the given path
+    /// </summary>
+    /// <param name="path">Path to SRT</param>
+    /// <param name="encoding">Optional encoding</param>
+    /// <returns>SRT file</returns>
+    public static async Task<SrtFile> FromFile(
+        string path,
+        Encoding? encoding = null
+    )
+    {
+        await using var stream = File.OpenRead(path);
+        return encoding != null ?
+            await Parse(stream, encoding) :
+            await Parse(stream);
+    }
+
     // try to sniff out encoding?
     public static async Task<SrtFile> Parse(Stream source) => await Parse(source, Encoding.UTF8);
     

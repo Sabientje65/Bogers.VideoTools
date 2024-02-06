@@ -89,12 +89,12 @@ public class Element
         _parent = parent;
     }
     
-    public void Reposition(long relativeOffset)
-    {
-        Position += relativeOffset;
-        foreach (var child in _children) child.Reposition(relativeOffset);
-        FindNextSibling()?.Reposition(relativeOffset);
-    }
+    // public void Reposition(long relativeOffset)
+    // {
+    //     Position += relativeOffset;
+    //     foreach (var child in _children) child.Reposition(relativeOffset);
+    //     FindNextSibling()?.Reposition(relativeOffset);
+    // }
         
     private Element? FindPreviousSibling()
     {
@@ -121,19 +121,39 @@ public class Element
     
     private void Add(Element childElement, bool isNew)
     {
+        var previousSibling = _children.LastOrDefault();
+        
         childElement.SetParent(this);
 
-        if (isNew)
-        {
-            var size = BitMask.SizeOf(childElement);
-            var previousSibling = childElement.FindPreviousSibling();
+        // take previous sibling position as base -> 
+        childElement.Position = Position + HeaderSize + 1;
+        if (previousSibling != null) childElement.Position = previousSibling.Position + BitMask.SizeOf(previousSibling) + 1;
 
-            if (previousSibling == null) childElement.Position = HeaderSize + 1;
-            else childElement.Position = previousSibling.Position + BitMask.SizeOf(previousSibling) + 1;
-            
-            childElement.FindNextSibling()?.Reposition(size);
-            OnSizeChanged(new SizeChangedArgs(childElement.HeaderSize + childElement.Size.Data));    
-        }
+        // all succeeding elements should be pushed down by the size of our new element
+        // all containing elements should grow with our new element having being added
+        var childSize = VInt.FromData(BitMask.SizeOf(childElement));
+
+        // start off repositioning all siblings to the right
+        var elementsToReposition = new List<Element>();
+        var elementsToGrow = new List<Element>();
+
+        var currentParent = _parent;
+        while (currentParent != null) currentParent._parent.Size += childSize;
+
+
+        // childElement.Reposition();
+
+        // if (isNew)
+        // {
+        //     var size = BitMask.SizeOf(childElement);
+        //     var previousSibling = childElement.FindPreviousSibling();
+        //
+        //     if (previousSibling == null) childElement.Position = HeaderSize + 1;
+        //     else childElement.Position = previousSibling.Position + BitMask.SizeOf(previousSibling) + 1;
+        //     
+        //     childElement.FindNextSibling()?.Reposition(size);
+        //     OnSizeChanged(new SizeChangedArgs(childElement.HeaderSize + childElement.Size.Data));    
+        // }
     }
 
     public Element? FindSingle(IMatroskaElement elementType) => FindMultiple(elementType).SingleOrDefault();
@@ -184,20 +204,10 @@ public class Element
         var stream = Content.ReadAsBytes();
         return encoding.GetString(stream);
     }
-    
-    private long ToLong(byte[] octets)
-    {
-        int value = 0;
-        foreach (var octet in octets) value = (value << 8) | octet;
-        return value;
-    }
-    
-    private ulong ToULong(byte[] octets)
-    {
-        uint value = 0;
-        foreach (var octet in octets) value = (value << 8) | octet;
-        return value;
-    }
+
+    private long ToLong(byte[] octets) => Utils.ToLong(octets);
+
+    private ulong ToULong(byte[] octets) => Utils.ToULong(octets);
 
     private VInt CalculateSize()
     {
@@ -211,28 +221,28 @@ public class Element
 
     }
 
-    private void OnSizeChanged(SizeChangedArgs args)
-    {
-        Size += VInt.FromData(args.SizeChange);
-                
-        // reposition siblings, since we've increased in size
-        FindNextSibling()?.Reposition(args.SizeChange);
-        _parent?.OnSizeChanged(args);
-
-        if (Id != MatroskaElementRegistry.MatroskaSegment.Id) return;
-
-        // if any of our seekheads changes size, we should trigger a re-index at the end
-        // var shouldReindex = false;
-                
-        // for segments, we also want to update our seekhead positions
-        foreach (var seekPosition in FindMultiple(MatroskaElementRegistry.MatroskaSeekPosition))
-        {
-            var currentPosition = seekPosition.ReadUIntContent();
-            var newPosition = currentPosition + (ulong)args.SizeChange;
-            var newContent = new BufferElementContent(newPosition);
-            // shouldReindex = shouldReindex || seekPosition._ebmlElement.Content.Size != newContent.Size;
-            seekPosition.Content = newContent;
-                    
-        }
-    }
+    // private void OnSizeChanged(SizeChangedArgs args)
+    // {
+    //     Size += VInt.FromData(args.SizeChange);
+    //             
+    //     // reposition siblings, since we've increased in size
+    //     FindNextSibling()?.Reposition(args.SizeChange);
+    //     _parent?.OnSizeChanged(args);
+    //
+    //     if (Id != MatroskaElementRegistry.MatroskaSegment.Id) return;
+    //
+    //     // if any of our seekheads changes size, we should trigger a re-index at the end
+    //     // var shouldReindex = false;
+    //             
+    //     // for segments, we also want to update our seekhead positions
+    //     foreach (var seekPosition in FindMultiple(MatroskaElementRegistry.MatroskaSeekPosition))
+    //     {
+    //         var currentPosition = seekPosition.ReadUIntContent();
+    //         var newPosition = currentPosition + (ulong)args.SizeChange;
+    //         var newContent = new BufferElementContent(newPosition);
+    //         // shouldReindex = shouldReindex || seekPosition._ebmlElement.Content.Size != newContent.Size;
+    //         seekPosition.Content = newContent;
+    //                 
+    //     }
+    // }
 }

@@ -183,7 +183,7 @@ public class EBMLHeader
     public int DocumentTypeReadVersion { get; set; }
 }
 
-public class MatroskaVideo
+public partial class MatroskaVideo
 {
     private static Stream _stream;
 
@@ -196,8 +196,8 @@ public class MatroskaVideo
         try
         {
             // var file = @"E:\src\Bogers.VideoTools\SubUtilities\TestFiles\test5.mkv";
-            var file = @"D:\Users\danny\Downloads\matroska_test_w1_1\test5.mkv"; // start off simple
-            var srt = ReadSrt();
+            var file = TestPaths.TestMkvInput; // start off simple
+            var srt = SrtFile.FromFile(TestPaths.TestSrt).Result;
             
             _stream = new BufferedStream(File.OpenRead(file));
             var reader = new EBMLElementReader(_stream);
@@ -231,19 +231,19 @@ public class MatroskaVideo
             
             // step 2: read our segment
             var segment = reader.ReadRootElement();
-            var segmentWrapper = segment;
+            // var segmentWrapper = segment;
             
-            var trackElement = CreateSubtitleTrack(segmentWrapper, "nld", "Custom Track");
+            var trackElement = CreateSubtitleTrack(segment, "nld", "Custom Track");
             var trackPosition = trackElement.FindSingle(MatroskaElementRegistry.MatroskaTrackNumber)!.ReadUIntContent();
             
-            // foreach (var subSegment in srt.Segments)
-            // {
-            //     CreateSubtitleBlock(segmentWrapper, subSegment, trackPosition);
-            // }
+            foreach (var subSegment in srt.Segments)
+            {
+                CreateSubtitleBlock(segment, subSegment, trackPosition);
+            }
             
             // ConsumeMasterElement(segment);
 
-            WriteDocument(new[] { masterElement, segment });
+            WriteDocument(TestPaths.TestMkvOutput, new[] { masterElement, segment });
 
             // step 3: determine the blocks over which our subs should span
 
@@ -257,178 +257,6 @@ public class MatroskaVideo
             _stream.Dispose();
         }
     }
-
-    // public class SizeChangedArgs : EventArgs
-    // {
-    //     public long SizeChange { get; }
-    //     
-    //     public SizeChangedArgs(long sizeChange)
-    //     {
-    //         SizeChange = sizeChange;
-    //     }
-    // }
-
-    // public delegate void SizeChangedEventHandler(object sender, SizeChangedArgs args);
-    
-    // public class MatroskaElementWrapper
-    // {
-    //     private readonly Element _ebmlElement;
-    //
-    //     public Element EBMLElement => _ebmlElement;
-    //
-    //     private readonly List<MatroskaElementWrapper> _children = new List<MatroskaElementWrapper>();
-    //
-    //     private MatroskaElementWrapper? _parent;
-    //
-    //     public MatroskaElementWrapper(Element ebmlElement)
-    //     {
-    //         _ebmlElement = ebmlElement;
-    //     }
-    //
-    //     public EventHandler<SizeChangedArgs> OnSizeChanged;
-    //
-    //     public MatroskaElementWrapper Add(Element ebmlElement)
-    //     {
-    //         var wrapper = new MatroskaElementWrapper(ebmlElement);
-    //         Add(wrapper);
-    //         return wrapper;
-    //     }
-    //
-    //     private void Add(MatroskaElementWrapper wrapper, bool isNew)
-    //     {
-    //         wrapper._ebmlElement.SetParent(_ebmlElement);
-    //         _children.Add(wrapper);
-    //         wrapper._parent = this;
-    //         
-    //         wrapper.OnSizeChanged += (sender, args) =>
-    //         {
-    //             _ebmlElement.Size += VInt.FromData(args.SizeChange);
-    //             
-    //             // also reposition siblings
-    //             FindNextSibling()?.Reposition(args.SizeChange);
-    //             OnSizeChanged?.Invoke(sender, args);
-    //
-    //             if (_ebmlElement.Id != MatroskaElementRegistry.MatroskaSegment.Id) return;
-    //
-    //             // if any of our seekheads changes size, we should trigger a re-index at the end
-    //             // var shouldReindex = false;
-    //             
-    //             // for segments, we also want to update our seekhead positions
-    //             foreach (var seekPosition in FindMultiple(MatroskaElementRegistry.MatroskaSeekPosition.Id))
-    //             {
-    //                 var currentPosition = seekPosition._ebmlElement.ReadUIntContent();
-    //                 var newPosition = currentPosition + (ulong)args.SizeChange;
-    //                 var newContent = new BufferElementContent(newPosition);
-    //                 // shouldReindex = shouldReindex || seekPosition._ebmlElement.Content.Size != newContent.Size;
-    //                 seekPosition._ebmlElement.Content = newContent;
-    //                 
-    //             }
-    //         };
-    //
-    //         if (isNew)
-    //         {
-    //             var previous = wrapper.FindPreviousSibling();
-    //             if (previous != null)
-    //             {
-    //                 wrapper.Reposition(
-    //                     previous.EBMLElement.NextSibling
-    //                 );                    
-    //             }
-    //
-    //             
-    //             wrapper.OnSizeChanged?.Invoke(this, new SizeChangedArgs(wrapper._ebmlElement.HeaderSize + wrapper._ebmlElement.Size.Data));    
-    //         }
-    //     }
-    //
-    //     public void Add(MatroskaElementWrapper wrapper) => Add(wrapper, true);
-    //     
-    //     public void Reposition(long relativeOffset)
-    //     {
-    //         _ebmlElement.Position += relativeOffset;
-    //         foreach (var child in _children) child.Reposition(relativeOffset);
-    //         FindNextSibling()?.Reposition(relativeOffset);
-    //     }
-    //     
-    //     private MatroskaElementWrapper? FindPreviousSibling()
-    //     {
-    //         if (_parent == null) return null;
-    //         var selfIdx = _parent._children.IndexOf(this);
-    //         if (selfIdx - 1 < 0) return null;
-    //         
-    //         return _parent._children.Skip(selfIdx - 1).FirstOrDefault();
-    //     } 
-    //
-    //     private MatroskaElementWrapper? FindNextSibling()
-    //     {
-    //         if (_parent == null) return null;
-    //         var selfIdx = _parent._children.IndexOf(this);
-    //         return _parent._children.Skip(selfIdx + 1).FirstOrDefault();
-    //     }
-    //
-    //     public MatroskaElementWrapper? FindSingle(long? id) => FindMultiple(id).SingleOrDefault();
-    //     
-    //     public IEnumerable<MatroskaElementWrapper> FindMultiple(long? id)
-    //     {
-    //         // depth first traversal
-    //         var remaining = new Stack<MatroskaElementWrapper>(_children);
-    //
-    //         while (remaining.Any())
-    //         {
-    //             var current = remaining.Pop();
-    //             if (current._ebmlElement.Id == new ElementId(id.Value)) yield return current;
-    //             foreach (var child in current._children) remaining.Push(child);
-    //         }
-    //     }
-    //
-    //     public static MatroskaElementWrapper CreateForTree(Element root)
-    //     {
-    //         var wrapper = new MatroskaElementWrapper(root);
-    //
-    //         foreach (var child in root.Children.ToArray())
-    //         {
-    //             wrapper.Add(CreateForTree(child), false);
-    //         }
-    //         
-    //         return wrapper;
-    //     }
-    // }
-    
-    // public class MatroskaSegment
-    // {
-    //     private MatroskaSeekHead _seekHead;
-    //
-    //     private List<MatroskaTrack> _tracks = new List<MatroskaTrack>();
-    //
-    //     public long Size { get; set; }
-    //
-    //     public void AddTrack(MatroskaTrack track)
-    //     {
-    //     }
-    // }
-
-    // public class MatroskaSeekHead
-    // {
-    //     public IEnumerable<MatroskaSeekEntry> Entries { get; }
-    // }
-
-    // public class MatroskaSeekEntry
-    // {
-    //     
-    //     
-    //     public long GetSeekPosition()
-    //     {
-    //         
-    //     }
-    //     
-    //     public void SetSeekPosition()
-    //     {
-    //         
-    //     }
-    // }
-    //
-    // public class MatroskaTrack
-    // {
-    // }
 
     public class ElementFactory
     {
@@ -504,6 +332,9 @@ public class MatroskaVideo
         var highestTrackNumber = tracksElement.FindMultiple(MatroskaElementRegistry.MatroskaTrackNumber)
             .Max(x => x.ReadUIntContent());
         
+        // todo: from root
+        var allTrackIds = segment.FindMultiple(MatroskaElementRegistry.MatroskaTrackUID).ToArray();
+        
         // var highestTrackNumber = trackEntries
         //     .Select(x => x.Children.SingleOrDefault(y => y.Id == MatroskaElementRegistry.MatroskaTrackNumber.Id))
         //     .Max(x => x?.ReadUIntContent() ?? 0);
@@ -511,6 +342,15 @@ public class MatroskaVideo
         var trackNumber = highestTrackNumber + 1;
         var trackId = new byte[4];
         Random.Shared.NextBytes(trackId);
+
+        //         foreach (var octet in octets) value = (value << 8) | octet;
+
+        while (allTrackIds.Any(x => x.ReadUIntContent() == Utils.ToULong(trackId)))
+        {
+            Random.Shared.NextBytes(trackId);
+            Thread.Sleep(TimeSpan.FromMicroseconds(50));
+        }
+        
 
         var trackNumberElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaTrackNumber, trackNumber);
         var trackIdElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaTrackUID, trackId);
@@ -542,56 +382,6 @@ public class MatroskaVideo
 
         // return new SubTitleTrack(trackElement);
     }
-
-    // private static SubTitleTrack CreateSubtitleTrack(Element segment, string language, string name)
-    // {
-    //     var tracksElement = segment.Children.First(
-    //         x => x.Id == MatroskaElementRegistry.MatroskaTracks.Id    
-    //     );
-    //
-    //     // todo: automatically add tracks element
-    //     if (tracksElement == default) throw new Exception("Expected tracks element!");
-    //     
-    //     // continue from last number
-    //     var trackEntries = tracksElement.Children
-    //         .Where(x => x.Id == MatroskaElementRegistry.MatroskaTrackEntry.Id)
-    //         .ToArray();
-    //     
-    //     var highestTrackNumber = trackEntries
-    //         .Select(x => x.Children.SingleOrDefault(y => y.Id == MatroskaElementRegistry.MatroskaTrackNumber.Id))
-    //         .Max(x => x?.ReadUIntContent() ?? 0);
-    //
-    //     var trackNumber = highestTrackNumber + 1;
-    //     var trackId = new byte[4];
-    //     Random.Shared.NextBytes(trackId);
-    //
-    //     var trackNumberElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaTrackNumber, trackNumber);
-    //     var trackIdElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaTrackUID, trackId);
-    //     var trackTypeElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaTrackType, 0x11); // subtitle
-    //     var defaultTrackElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaFlagDefault, 0);
-    //     var lacingElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaFlagLacing, 0);
-    //     var codecElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaCodecID, Encoding.ASCII.GetBytes("S_TEXT/UTF8"));
-    //     var languageElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaLanguage, Encoding.ASCII.GetBytes(language));
-    //     var nameElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaName, Encoding.UTF8.GetBytes(name));
-    //
-    //     var trackElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaTrackEntry, new[]
-    //     {
-    //         trackNumberElement,
-    //         trackIdElement,
-    //         trackTypeElement,
-    //         defaultTrackElement,
-    //         lacingElement,
-    //         codecElement,
-    //         languageElement,
-    //         nameElement
-    //     });
-    //     
-    //     tracksElement.Add(trackElement);
-    //     // trackElement.SetParent();
-    //     // tracksElement.Size += trackElement.Size;
-    //
-    //     return new SubTitleTrack(trackElement);
-    // }
     
     private static void CreateSubtitleBlock(
         Element segment,
@@ -618,7 +408,7 @@ public class MatroskaVideo
             .ToArray();
 
         var cluster = clustersWithTimestamps
-            .Where(x => x.Timestamp < srtSegment.TimeRange.From)
+            .Where(x => x.Timestamp <= srtSegment.TimeRange.From)
             .OrderBy(x => x.Timestamp.Value)
             .LastOrDefault();
 
@@ -644,7 +434,7 @@ public class MatroskaVideo
         contentStream.Write(trackNumber.AsBytes());
         contentStream.Write(relativeTimestamp.AsBytes());
         contentStream.Write(flags.AsBytes());
-        contentStream.Write(Encoding.ASCII.GetBytes("Teeeeest"));
+        contentStream.Write(Encoding.ASCII.GetBytes(srtSegment.Text));
 
         var blockElement = ElementFactory.CreateElement(MatroskaElementRegistry.MatroskaBlock, contentStream);
 
@@ -657,16 +447,12 @@ public class MatroskaVideo
         cluster.Cluster.Add(blockGroupElement);
     }
     
-    private static SrtFile ReadSrt()
+    private static void WriteDocument(
+        string destination,
+        IEnumerable<Element> elements
+    )
     {
-        var srtFile = @"D:\Users\danny\Videos\Subs\Planetes JP 1-26 [Netflix]\Planetes JP 1-26 [Netflix]\Planetes.S01E19.CC.ja.srt";
-        using var stream = File.OpenRead(srtFile);
-        return SrtFile.Parse(stream).GetAwaiter().GetResult();
-    }
-    
-    private static void WriteDocument(IEnumerable<Element> elements)
-    {
-        using var target = File.Create(@"E:\src\Bogers.VideoTools\SubUtilities\TestFiles\test5-copy.mkv");
+        using var target = File.Create(destination);
         
         // reset source to start
         // ResetStream();
@@ -692,6 +478,8 @@ public class MatroskaVideo
             var contentReader = element.Type == ElementType.Master ? NoElementContent.Instance : element.Content;
             contentReader.ReadAsStream().CopyTo(target);
         }
+        
+        target.Flush();
     }
 }
 
